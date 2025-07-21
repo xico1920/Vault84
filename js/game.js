@@ -1,3 +1,7 @@
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Brain principal que vai ouvir quando o DOM der load
 document.addEventListener('DOMContentLoaded', () => {
     // Determinamos a constante "crt" que vai ser igual à classe "game"
@@ -6,11 +10,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Por exemplo, se o user for "John", em localStorage ficaria
     // vault84_user: John
     const USERNAME_KEY = 'vault84_user';
+    const bootSound = new Audio('../assets/audio/boot.mp3'); 
+    const clickSound = new Audio('../assets/audio/click.mp3');
+    const bg = new Audio('../assets/audio/background.mp3');
+    var checkUsername;
 
     // Funçao que dá render do start screen
-    function renderStartScreen(){
+    function renderStartScreen(username){
         crt.innerHTML = `
-            <div class="piece output items-center">
+            <div class="piece output items-center justify-center">
                 <h1>VAULT 84</h1>
                 <a id="start_game" href="#">[ START ]</a>
                 <p class="mt-5">© 1997 VOLTECH SYSTEMS</p>
@@ -19,14 +27,73 @@ document.addEventListener('DOMContentLoaded', () => {
         // Vai ouvir o botao, caso o botao seja clicado, avança para o ecra de Username Input
         document.getElementById('start_game').addEventListener('click', (e) => {
             e.preventDefault();
-            renderUsernameInput();
+            renderBootSequence(username);
         })
     }
+    
+    async function renderBootSequence(username) {
+        crt.innerHTML = `
+            <div class="piece output" style="width: 100%; text-align: left;">
+                <div id="boot-log"></div>
+            </div>
+        `;
+        const bootLog = document.getElementById('boot-log');
+
+        bootSound.volume = 0.25;
+        bootSound.play();
+
+        const bootLines = [
+            'VOLTECH SYSTEMS(TM) BIOS v2.17',
+            'Initializing VT-DOS...',
+            'Memory Check: 640K... OK',
+            'Searching for bootable media...',
+            'Booting from C:/ drive...',
+            'Loading kernel modules...',
+            '[OK] IO_SUBSYSTEM',
+            '[OK] MEM_MANAGER_V2',
+            '[OK] RSRC_ALLOCATOR',
+            'Mounting file systems...',
+            '[OK] /dev/vda1 mounted on /',
+            'Starting services...',
+            '[OK] CRON_DAEMON',
+            '[OK] TERMINAL_RENDERER',
+            '[WARN] Network interface eth0 not found.',
+            'Starting UI...',
+            'Welcome to VaultOS.',
+            'Terminal ready.',
+        ];
+
+        var timeLines = 250;
+        for (const line of bootLines) {
+            const p = document.createElement('p');
+            p.style.margin = '0';
+            p.textContent = `> ${line}`;
+            bootLog.appendChild(p);
+            
+            crt.scrollTop = crt.scrollHeight; 
+            clickSound.volume = 0.07;
+            clickSound.play();
+
+            await sleep(timeLines);
+            timeLines += 50;
+        }
+        await sleep(1500);
+        if(username){
+            renderGameUI(username);
+        }else{
+            renderUsernameInput();
+        }
+    }
+
 
     // Funçao que dá render do username input screen
     function renderUsernameInput() {
+        checkUsername = 1;
+        bg.volume = 0.2;
+        bg.play();
+        bg.loop = true;
         crt.innerHTML = `
-            <div class="piece output items-center">
+            <div class="piece output items-center justify-center">
                 <h1>AUTHENTICATION</h1>
                 <p>Please register your terminal designation.</p>
                 <input type="text" id="username-input" class="terminal-input" maxlength="20" autofocus>
@@ -57,7 +124,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderGameUI(username) {
+    async function renderGameUI(username) {
+        if(checkUsername === 1){
+            await sleep(100);
+        }
+        else{
+            bg.volume = 0.2;
+            bg.play();
+            bg.loop = true;
+        }
         crt.innerHTML = `
         <div class="piece output">
             <h1>Welcome, Overseer ${username}</h1>
@@ -90,16 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function init() {
         // Vai buscar o username do localStorage
         const savedUsername = localStorage.getItem(USERNAME_KEY);
-
-        if (savedUsername) {
-            // Se existe, baza
-            console.log(`Found saved user: ${savedUsername}`);
-            renderGameUI(savedUsername);
-        } else {
-            // Se nao, start screen
-            console.log("No saved user found. Showing start screen.");
-            renderStartScreen();
-        }
+        renderStartScreen(savedUsername);
     }
 
     // Inicia
