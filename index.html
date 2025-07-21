@@ -2,28 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ancient Computing</title>
+  <title>Vault 84</title>
   <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <!-- Styling -->
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Icon (to add) -->
+  <link rel="icon" href="assets/img/MainIcon.png" type=".png">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="noisy">
+  <!-- Falta o icon -->
   <div class="emblem">
     <span class="icon-information"></span>
   </div>
-
+  <!-- Container principal -->
+  <!-- Contem o styling para o efeito CRT -->
   <div class="frame">
-    <div class="piece output">
-      <h1>Vault 84</h1>
-      <p>Welcome to Vault 84 - your mining adventure</p>
-      <p>Click to Mine and earn more as you go...</p>
-      <p>Upgrade your gear and grow your mining empire.</p>
-      <a href="http://www.computerhistory.org/" class="terminal-link">
-        => Start Game<span class="cursor">|</span>
-      </a>
+    <!-- Aqui é onde o HTML do jogo vai actually estar -->
+    <!-- Este HTML está vazio pois depois o JS vai dar override de tudo o que está lá dentro -->
+    <div class="game">
 
     </div>
     <div class="piece scanlines noclick"></div>
     <div class="piece glow noclick"></div>
   </div>
+  <!-- Script principal -->
+  <script src="js/game.js"></script>
 </body>
 </html>
