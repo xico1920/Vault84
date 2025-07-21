@@ -147,10 +147,14 @@ a:hover {
     rgba(21, 235, 92, 0.57) 80%,
     rgba(19, 94, 29, 0.27) 93%,
     rgba(10, 23, 12, 0) 100%);
-  opacity: 0.15;
+  opacity: 0.05;
   pointer-events: none;
   position: fixed;
-   z-index: 1;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 @keyframes crt-glow {

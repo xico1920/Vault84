@@ -38,10 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         const bootLog = document.getElementById('boot-log');
-
         bootSound.volume = 0.25;
         bootSound.play();
-
+            
         const bootLines = [
             'VOLTECH SYSTEMS(TM) BIOS v2.17',
             'Initializing VT-DOS...',
@@ -78,9 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
             timeLines += 50;
         }
         await sleep(1500);
-        if(username){
+        if(username) {
             renderGameUI(username);
-        }else{
+        } else{
             renderUsernameInput();
         }
     }
@@ -89,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Funçao que dá render do username input screen
     function renderUsernameInput() {
         checkUsername = 1;
-        bg.volume = 0.2;
+        bg.volume = 0.1;
         bg.play();
         bg.loop = true;
         crt.innerHTML = `
@@ -129,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await sleep(100);
         }
         else{
-            bg.volume = 0.2;
+            bg.volume = 0.1;
             bg.play();
             bg.loop = true;
         }
