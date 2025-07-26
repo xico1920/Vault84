@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const crt = document.querySelector('.game');
     const USERNAME_KEY = 'vault84_user';
     const bootSound = new Audio('assets/audio/boot.mp3');
-    const loginSound = new Audio('assets/audio/login_boot2.mp3'); 
+    const loginSound = new Audio('assets/audio/welcome.mp3'); 
     const clickSound = new Audio('assets/audio/click.mp3');
     const bg = new Audio('assets/audio/background.mp3');
     var checkUsername;
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         await sleep(1500);
         if(username) {
-            renderGameUI(username);
+            renderWelcomeScreen(username);
         } else{
             renderUsernameInput();
         }
@@ -120,13 +120,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = usernameInput.value.trim();
             if (username) {
                 localStorage.setItem(USERNAME_KEY, username);
-                renderGameUI(username);
-                loginSound.volume = 0.1 ;
-                loginSound.play();
+                renderWelcomeScreen(username);
             } else {
                 usernameInput.placeholder = "DESIGNATION REQUIRED";
             }
         });
+    }
+
+    async function renderWelcomeScreen(username){
+        loginSound.volume = 0.1;
+        loginSound.play();
+        crt.innerHTML = `
+            <div class="piece output items-center justify-center">
+                <img src="assets/img/glow.png" alt="VOLTEC logo" class="logo"></img>
+            </div>
+        `;
+        await sleep(10000);
+        renderGameUI(username);
     }
 
     async function renderGameUI(username) {
@@ -137,9 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bg.volume = 0.1;
             bg.play();
             bg.loop = true;
-
-            loginSound.volume = 0.1 ;
-            loginSound.play();
         }
         crt.innerHTML = `
         <div class="piece output">

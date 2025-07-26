@@ -157,6 +157,10 @@ a:hover {
   bottom: 0;
 }
 
+.logo{
+  max-width:20%;
+}
+
 @keyframes crt-glow {
   0% { opacity: 0.1; }
   50% { opacity: 0.2; }
