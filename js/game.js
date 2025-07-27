@@ -127,17 +127,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function renderWelcomeScreen(username){
-        loginSound.volume = 0.1;
-        loginSound.play();
-        crt.innerHTML = `
-            <div class="piece output items-center justify-center">
-                <img src="assets/img/glow.png" alt="VOLTEC logo" class="logo"></img>
-            </div>
-        `;
-        await sleep(10000);
-        renderGameUI(username);
-    }
+  async function renderWelcomeScreen(username) {
+    loginSound.volume = 0.1;
+    loginSound.play();
+
+    crt.innerHTML = `
+        <div class="piece output items-center justify-center">
+            <img src="assets/img/vault84.png" id="vaultLogo" alt="VOLTEC logo" class="logo" style="opacity: 0; transition: opacity 2s ease;">
+            <div id="loadingText" style="font-family: monospace; color: #14fdce; margin-top: 10px;"></div>
+            <p class="mt-5">© 1977 VOLTECH SYSTEMS</p>
+        </div>
+    `;
+
+    // FADE IN do logotipo
+    const logo = document.getElementById('vaultLogo');
+    setTimeout(() => {
+        logo.style.opacity = 1;
+    }, 250); // ligeiro delay para garantir que o DOM aplicou a opacidade 0
+
+    // Loader estilo [■     ] ping-pong infinito
+    const loaderFrames = [
+        '[■ㅤㅤㅤㅤ]',
+        '[ㅤ■ㅤㅤㅤ]',
+        '[ㅤㅤ■ㅤㅤ]',
+        '[ㅤㅤㅤ■ㅤ]',
+        '[ㅤㅤㅤㅤ■]',
+        '[ㅤㅤㅤ■ㅤ]',
+        '[ㅤㅤ■ㅤㅤ]',
+        '[ㅤ■ㅤㅤㅤ]',
+    ];
+    let frameIndex = 0;
+
+    const loadingText = document.getElementById('loadingText');
+
+    const loadingInterval = setInterval(() => {
+        loadingText.textContent = loaderFrames[frameIndex % loaderFrames.length];
+        frameIndex++;
+    }, 200);
+
+    await sleep(10000);
+    clearInterval(loadingInterval);
+
+    renderGameUI(username);
+}
+
 
     async function renderGameUI(username) {
         if(checkUsername === 1){
