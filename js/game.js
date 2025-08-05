@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         crt.innerHTML = `
         <div class="piece output items-center justify-center">
-            <img src="assets/img/vault84.png" id="vaultLogo" alt="VOLTEC logo" class="logo" style="opacity: 0; transition: opacity 2s ease;">
+            <img src="assets/img/logo_voltec2.png" id="vaultLogo" alt="VOLTEC logo" class="logo" style="opacity: 0; transition: opacity 2s ease;">
             <div id="loadingText" style="font-family: monospace; color: #14fdce; margin-top: 10px;"></div>
             <p id="copyright" class="mt-5">© 1977 VOLTECH SYSTEMS</p>
 
