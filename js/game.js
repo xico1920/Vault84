@@ -299,11 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
         crt.innerHTML = `
     <div class="piece output">
         <h1>Welcome, Overseer ${username}</h1>
-        <p>Resource management systems online.</p>
         
         <div id="game-stats">
             <p>Caps: <span id="caps-count">0</span>$</p>
-                
         </div>
 
         <!-- Developer Menu - TIRAR DEPOIS -->
