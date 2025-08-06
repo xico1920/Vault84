@@ -13,25 +13,24 @@ export class ScreenManager {
     }
 
     async navigateTo(screenName, ...args) {
-        // Exit current screen
         if (this.currentScreen && this.currentScreen.onExit) {
             await this.currentScreen.onExit();
         }
         
-        // Get new screen
         const screen = this.screens[screenName];
         if (!screen) {
             console.error(`Screen ${screenName} not found!`);
             return;
         }
         
-        // Clear the root element
         this.root.innerHTML = '';
-        
-        // Set as current screen
         this.currentScreen = screen;
-        
-        // Render new screen
         await screen.render(...args);
+        
+        // Call onRendered hook if it exists
+        if (this.currentScreen.onRendered) {
+            await this.currentScreen.onRendered(...args);
+        }
     }
+
 }

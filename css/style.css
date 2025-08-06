@@ -13,6 +13,12 @@ body {
   line-height: 1.2;
 }
 
+.disabled{
+  color: grey;
+  text-decoration: line-through;
+  text-shadow: none !important;
+}
+
 h1 {
   font-size: 4rem;
   margin-bottom: 1rem;
@@ -98,8 +104,7 @@ a:hover {
       0 0 20px #13c994,
       0 0 30px #13c994,
       0 0 40px #13c994,
-      0 0 70px #13c994,
-      0 0 80px #13c994;
+      0 0 70px #13c994;
   z-index: 3;
   overflow: hidden;
 }
@@ -278,7 +283,6 @@ a:hover {
   display: flex;
   flex-direction: column;
   padding: 1rem;
-  width: 20%;
   background-color: #031e11;
   border-radius: 1rem;
   border: 4px solid #14fdce;
