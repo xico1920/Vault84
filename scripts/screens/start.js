@@ -3,7 +3,7 @@ export function createStartScreen(manager) {
         async render(username) {
             manager.root.innerHTML = `
                 <div class="piece output items-center justify-center">
-                    <h1>VAULT 84</h1>
+                    <img class="w-md" src="../../assets/img/vault84.png"></img>
                     <a id="start_game" href="#">[ START ]</a>
                     <p class="mt-5">© 1977 VOLTECH SYSTEMS</p>
                 </div>

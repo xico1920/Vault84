@@ -1,8 +1,11 @@
+// Import da função sleep da utils, dá jeito para as animações
 import { sleep } from '../core/utils.js';
-
+// Função que cria o Boot-up
+// Parecida à função do original "game.js", só que passada para "módulo" 
 export function createBootScreen(manager) {
     return {
         async render(username) {
+            // O HTML do boot-up screen
             manager.root.innerHTML = `
                 <div class="piece output" style="width: 100%; text-align: left;">
                     <div id="boot-log"></div>
@@ -12,26 +15,37 @@ export function createBootScreen(manager) {
                 </div>
             `;
 
+            // Constantes para as classes ".boot-log" e ".skip-loader"
+            // E um bool para determinar se um skip foi requested
             const bootLog = document.getElementById('boot-log');
             const skipBtn = document.getElementById('skip-loader');
             let skipRequested = false;
 
+            // Lógica do botão de skip do boot-up screen
             skipBtn.addEventListener('click', (e) => {
+                // Necessário para custom navigation neste sentido, sendo uma SPA
                 e.preventDefault();
+                // Mudamos o skipRequested para verdadeiro
                 skipRequested = true;
+                // Parar os sons
                 manager.audio.stop('boot');
                 manager.audio.stop('click');
                 
+                // Se username existe
                 if (username) {
+                    // vai para a página Welcome
                     manager.navigateTo('welcome', username);
                 } else {
+                    // vai para a página Auth
                     manager.navigateTo('auth');
                 }
             });
 
+            // Mete um valor determinado para o volume do áudio do boot, e toca esse mesmo áudio
             manager.audio.setVolume('boot', 0.25);
             manager.audio.play('boot');
 
+            // bootLines por defeito
             const bootLines = [
                 'VOLTECH SYSTEMS(TM) BIOS v2.17',
                 'Initializing VT-DOS...',
@@ -53,10 +67,13 @@ export function createBootScreen(manager) {
                 'Terminal ready.',
             ];
 
+            // Tempo, em ms, em que cada linha começa a aparecer
             let timeLines = 250;
             for (const line of bootLines) {
+                // Se o skip foi pedido, dar break logo
                 if (skipRequested) break;
 
+                // Aumenta o valor do Memory Check para ser parecido com PCs antigos
                 if (line.startsWith('Memory Check')) {
                     const p = document.createElement('p');
                     p.style.margin = '0';
@@ -83,6 +100,7 @@ export function createBootScreen(manager) {
                 p.textContent = `> ${line}`;
                 bootLog.appendChild(p);
 
+                
                 manager.root.scrollTop = manager.root.scrollHeight;
                 manager.audio.play('click');
 

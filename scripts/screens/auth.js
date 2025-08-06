@@ -1,3 +1,5 @@
+// Função que cria o ecrã Authentication
+// Parecida à função do original "game.js", só que passada para "módulo" 
 export function createAuthScreen(manager, USERNAME_KEY) {
     return {
         async render() {

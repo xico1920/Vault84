@@ -97,7 +97,7 @@ a:hover {
   background-color: #031e11;
   overflow: scroll;
   position: absolute;
-  padding: 3rem 2rem;
+  padding: 2rem 2rem;
   pointer-events: auto;
   text-shadow:
       0 0 10px #13c994,
@@ -279,6 +279,7 @@ a:hover {
 .nav-list li {
   margin-right: 1rem;
 }
+
 .resources {
   display: flex;
   flex-direction: column;
