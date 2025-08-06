@@ -10,6 +10,11 @@
   <link rel="icon" href="assets/img/MainIcon.png" type=".png">
   <!-- Tailwind CSS -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Preload important assets -->
+  <link rel="preload" href="assets/audio/boot.mp3" as="audio">
+  <link rel="preload" href="assets/audio/welcome.mp3" as="audio">
+  <link rel="preload" href="assets/audio/click.mp3" as="audio">
+  <link rel="preload" href="assets/img/logo_voltec2.png" as="image">
 </head>
 <body class="noisy">
   <!-- Falta o icon -->
@@ -28,6 +33,6 @@
     <div class="piece glow noclick"></div>
   </div>
   <!-- Script principal -->
-  <script src="js/game.js"></script>
+  <script type="module" src="scripts/main.js"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
-function sleep(ms) {
+// Isto vai ficar aqui para purposes de se algo for com o caralho, temos esta base
+/**function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -331,11 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
     function init() {
         const savedUsername = localStorage.getItem(USERNAME_KEY);
         renderStartScreen(savedUsername);
     }
 
     init();
-});
+});**/
