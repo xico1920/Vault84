@@ -44,7 +44,7 @@ export function createBootScreen(manager) {
             // Mete um valor determinado para o volume do áudio do boot, e toca esse mesmo áudio
             manager.audio.setVolume('boot', 0.25);
             manager.audio.play('boot');
-
+            manager.audio.setVolume('click', 0.25);
             // bootLines por defeito
             const bootLines = [
                 'VOLTECH SYSTEMS(TM) BIOS v2.17',
