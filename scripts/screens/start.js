@@ -1,18 +1,18 @@
 export function createStartScreen(manager) {
-    return {
-        async render(username) {
-            manager.root.innerHTML = `
-                <div class="piece output items-center justify-center">
-                    <img class="w-md" src="/Vault84/assets/img/vault84.png"></img>
-                    <a id="start_game" href="#">[ START ]</a>
-                    <p class="mt-5">© 1977 VOLTECH SYSTEMS</p>
-                </div>
-            `;
-            
-            document.getElementById('start_game').addEventListener('click', (e) => {
-                e.preventDefault();
-                manager.navigateTo('boot', username);
-            });
-        }
-    };
+  return {
+    async render(username) {
+      manager.root.innerHTML = `
+    <div class="piece output items-center justify-center">
+        <img class="w-md" src="/assets/img/vault84.png" alt="Vault 84 Logo">
+        <a id="start_game" href="#">[ START ]</a>
+        <p class="mt-5">© 1977 VOLTECH SYSTEMS</p>
+    </div>
+`;
+
+      document.getElementById("start_game").addEventListener("click", (e) => {
+        e.preventDefault();
+        manager.navigateTo("boot", username);
+      });
+    },
+  };
 }
