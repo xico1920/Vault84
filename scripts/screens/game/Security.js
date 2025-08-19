@@ -1,12 +1,11 @@
-export function createRoomsScreen() {
+export function createSecurityScreen() {
     return {
         async render() {
             return `
                 <div class="grid grid-cols-12 gap-4">
                     <div class="col-span-12 md:col-span-12">
-                        <h1>ROOMS</h1>
-                        <p>THERE ARE NO ROOMS CURRENTLY AVAILABLE.</p>
-                        <p>START MINING TO BUILD YOUR FIRST ROOM.</p>
+                        <h1>SECURITY</h1>
+                        <p>TODO</p>
                     </div>
                 </div>
             `;

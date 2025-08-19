@@ -2,10 +2,14 @@
 // Ya, lógica da criação da page do jogo
 
 import { GameNavManager } from '../core/gameNavManager.js';
-import { createRoomsScreen } from './game/rooms.js';
+import { createOreRefineryScreen } from './game/OreRefinery.js';
 import { createStatusScreen } from './game/status.js';
-import { createPersonnelScreen } from './game/personnel.js';
-import { createResourcesScreen } from './game/resources.js';
+import { createReactorCoreScreen } from './game/ReactorCore.js';
+import { createMiningShaftScreen } from './game/MiningShaft.js';
+import { createWaterTreatmentScreen } from './game/WaterTreatment.js';
+import { createSmartStorageUnitScreen } from './game/SmartStorageUnit.js';
+import { createWorkshopScreen } from './game/Workshop.js';
+import { createSecurityScreen } from './game/Security.js';
 import { createSettingsScreen } from './game/settings.js';
 
 export function createGameScreen(manager, USERNAME_KEY) {
@@ -19,9 +23,13 @@ export function createGameScreen(manager, USERNAME_KEY) {
                     <nav class="nav-bar mb-10">
                         <ul class="nav-list">
                             <li><a href="#" data-screen="status">STATUS</a></li>
-                            <li><a href="#" data-screen="rooms">ROOMS</a></li>
-                            <li><a href="#" data-screen="personnel">PERSONNEL</a></li>
-                            <li><a href="#" data-screen="resources">RESOURCES</a></li>
+                            <li><a href="#" data-screen="reactorcore">REACTOR CORE</a></li>
+                            <li><a href="#" data-screen="miningshaft">MINING SHAFT</a></li>
+                            <li><a href="#" data-screen="orerefinery">ORE REFINERY</a></li>
+                            <li><a href="#" data-screen="watertreatment">WATER TREATMENT</a></li>
+                            <li><a href="#" data-screen="smartstorageunit">SSM</a></li>
+                            <li><a href="#" data-screen="workshop">WORKSHOP</a></li>
+                            <li><a href="#" data-screen="security">SECURITY</a></li>
                             <li><a href="#" data-screen="settings">SETTINGS</a></li>
                         </ul>
                     </nav>
@@ -54,9 +62,13 @@ export function createGameScreen(manager, USERNAME_KEY) {
             // Constante com todos as tabs da Navigation Bar. Status, Rooms, etc...
             const screens = {
                 status: createStatusScreen(),
-                rooms: createRoomsScreen(),
-                personnel: createPersonnelScreen(),
-                resources: createResourcesScreen(),
+                reactorcore: createReactorCoreScreen(),
+                miningshaft: createMiningShaftScreen(),
+                orerefinery: createOreRefineryScreen(),
+                watertreatment: createWaterTreatmentScreen(),
+                smartstorageunit: createSmartStorageUnitScreen(),
+                workshop: createWorkshopScreen(),
+                security: createSecurityScreen(),
                 settings: createSettingsScreen(USERNAME_KEY, manager.audio)
             };
 
