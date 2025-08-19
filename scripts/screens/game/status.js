@@ -5,8 +5,10 @@ export function createStatusScreen() {
                 <div class="grid grid-cols-12 gap-4">
                     <div class="col-span-12 md:col-span-9">
                         <h1>STATUS</h1>
-                        <p>CURRENT MINING STATUS: NONE</p>
-                        <p>CURRENT OVERSEER LEVEL: 1</p>
+                        <p>CASH: 1$</p>
+                        <p>MINING STATUS: OFFLINE</p>
+                        <p>WATER EXTRACTION: OFFLINE</p>
+                        <p>WAREHOUSE: EMPTY</p>
                     </div>
                     <div class="col-span-12 md:col-span-3">
                         <div class="resources">
