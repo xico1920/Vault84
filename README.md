@@ -1,6 +1,6 @@
 # Vault 84
 
-**Vault 84** is a **resource management and exploration game** set in a post-apocalyptic environment.  
+**Vault 84** is a **resource and infrastructure management game** set in a fictional post-apocalyptic environment.  
 This repository contains the source code and assets for the project.
 
 ---
