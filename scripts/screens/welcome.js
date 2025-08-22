@@ -6,7 +6,9 @@ export function createWelcomeScreen(manager) {
             manager.root.innerHTML = `
                 <div class="piece output items-center justify-center">
                     <img src="assets/img/logo_voltec2.png" id="vaultLogo" alt="VOLTEC logo" class="logo" style="opacity: 0; transition: opacity 2s ease;">
-                    <div id="loadingText" style="font-family: monospace; color: #14fdce; margin-top: 10px;"></div>
+                    <p id="loadingText" class="mt-5"></p>
+                    <br>
+                    <p id="statusLine" class="mt-5">[Loading Environment]</p>
                     <p id="copyright" class="mt-5">© 1977 VOLTECH SYSTEMS</p>
                     <div id="dev-menu" style="position: absolute; bottom: 1rem; right: 1rem; border: 1px solid #14fdce; padding: 5px; opacity: 0.4;">
                         <a href="#" id="skip-loader" class="terminal-link" style="border: none; font-size: 16px;">[Dev: Skip Loader]</a>
@@ -18,28 +20,46 @@ export function createWelcomeScreen(manager) {
             manager.audio.play('login');
 
             const logo = document.getElementById('vaultLogo');
-            setTimeout(() => {
-                logo.style.opacity = 1;
-            }, 250);
+            setTimeout(() => { logo.style.opacity = 1; }, 250);
 
             const skipBtn = document.getElementById('skip-loader');
             let skipRequested = false;
-
             skipBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 skipRequested = true;
                 manager.navigateTo('game', username);
             });
 
-            const loaderFrames = ['▒▒▒▒▒', '▓▒▒▒▒', '▓▓▒▒▒', '▓▓▓▒▒', '▓▓▓▓▒', '▓▓▓▓▓'];
-            let frameIndex = 0;
             const loadingText = document.getElementById('loadingText');
+            const statusLine = document.getElementById('statusLine');
 
-            const loadingInterval = setInterval(() => {
-                if (skipRequested) return;
-                loadingText.textContent = loaderFrames[frameIndex % loaderFrames.length];
-                frameIndex++;
-            }, 200);
+            const statusMessages = [
+                "Loading environment",
+                "Checking water pumps",
+                "Stabilizing reactor core",
+                "Calibrating sensors",
+                "All systems ready!"
+            ];
+
+            async function typeWithDots(message, isLast = false) {
+                loadingText.textContent = "";
+                statusLine.textContent = "";
+                const fullText = isLast ? message : message + "...";
+                for (let i = 0; i < fullText.length; i++) {
+                    if (skipRequested) return;
+                    loadingText.textContent += fullText[i];
+                    await sleep(50);
+                }
+                await sleep(500);
+            }
+
+            (async () => {
+                for (let i = 0; i < statusMessages.length; i++) {
+                    if (skipRequested) break;
+                    const isLast = (i === statusMessages.length - 1);
+                    await typeWithDots(statusMessages[i], isLast);
+                }
+            })();
 
             const copyright = document.getElementById('copyright');
             const originalText = copyright.textContent;
@@ -51,7 +71,6 @@ export function createWelcomeScreen(manager) {
             const glitchInterval = setInterval(() => {
                 if (skipRequested) return;
                 const stablePart = originalChars.slice(0, stableIndex).join('');
-                // FIXED LINE: Removed extra parentheses around ternary
                 const glitchPart = originalChars
                     .slice(stableIndex)
                     .map(c => Math.random() < 0.25 ? randomChar() : c)
@@ -71,16 +90,8 @@ export function createWelcomeScreen(manager) {
                 let elapsed = 0;
                 const interval = 100;
                 const max = totalTime;
-
                 const check = setInterval(() => {
-                    if (skipRequested) {
-                        clearInterval(loadingInterval);
-                        clearInterval(glitchInterval);
-                        clearInterval(stabilizeInterval);
-                        clearInterval(check);
-                        resolve();
-                    } else if (elapsed >= max) {
-                        clearInterval(loadingInterval);
+                    if (skipRequested || elapsed >= max) {
                         clearInterval(glitchInterval);
                         clearInterval(stabilizeInterval);
                         clearInterval(check);
@@ -91,11 +102,13 @@ export function createWelcomeScreen(manager) {
             });
 
             if (!skipRequested) {
+                loadingText.textContent = "";
+                statusLine.textContent = "";
                 copyright.textContent = originalText;
                 manager.navigateTo('game', username);
             }
         },
-        
+
         onExit() {
             manager.audio.stop('login');
         }
