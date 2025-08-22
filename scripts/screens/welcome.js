@@ -37,7 +37,7 @@ export function createWelcomeScreen(manager) {
                 "Loading Environment",
                 "Checking Water Pumps",
                 "Stabilizing Reactor Core",
-                "Calibrating Sensors",
+                "Assembling 3D Models",
                 "All systems Ready!"
             ];
 
