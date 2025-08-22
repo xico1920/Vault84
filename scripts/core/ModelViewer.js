@@ -1,5 +1,5 @@
-// scripts/core/modelViewer.js
-// Visualizador simples para modelos 3D em wireframe verde
+// scripts/core/ModelViewer.js
+// Visualizador simples para modelos 3D em wireframe verde - FIXED RESIZE ISSUE
 
 export class ModelViewer {
     constructor() {
@@ -18,22 +18,22 @@ export class ModelViewer {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x031e11); // Verde escuro do terminal
 
-        // Camera
+        // Camera - valores iniciais serão recalculados no resize
         const camera = new THREE.PerspectiveCamera(
             options.fov || 75,
-            canvas.clientWidth / canvas.clientHeight,
+            1, // Será atualizado no primeiro resize
             0.1,
             1000
         );
         
-        // Posição da câmera ajustada para melhor centramento
-        camera.position.set(
-            options.cameraX || 0,
-            options.cameraY || 0,
-            options.cameraZ || 5
-        );
+        // Posição inicial da câmera
+        const initialCameraPos = {
+            x: options.cameraX || 0,
+            y: options.cameraY || 0,
+            z: options.cameraZ || 5
+        };
         
-        // Garante que a câmera está a olhar para o centro
+        camera.position.set(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
         camera.lookAt(0, 0, 0);
 
         // Renderer
@@ -42,7 +42,8 @@ export class ModelViewer {
             antialias: true,
             alpha: true
         });
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        
+        // Configuração inicial do renderer - será atualizada no resize
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
         // Controles de interação - SIMPLES
@@ -100,6 +101,11 @@ export class ModelViewer {
                     model.scale.setScalar(options.modelScale);
                 }
 
+                // Centralizar o modelo na origem
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.sub(center); // Move o modelo para que seu centro fique na origem
+
                 // Guarda só a rotação X inicial
                 controls.targetRotationX = model.rotation.x;
 
@@ -112,6 +118,23 @@ export class ModelViewer {
             model = new THREE.Mesh(geometry, wireframeMaterial);
             scene.add(model);
         }
+
+        // Função de resize melhorada
+        const handleResize = () => {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            
+            // Atualiza o aspect ratio da câmera
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            
+            // Atualiza o tamanho do renderer
+            renderer.setSize(width, height, false); // false evita mudanças no CSS
+            
+            // Re-renderiza para aplicar as mudanças imediatamente
+            renderer.render(scene, camera);
+        };
 
         // Event listeners
         canvas.addEventListener('mousedown', (e) => {
@@ -149,6 +172,18 @@ export class ModelViewer {
             camera.position.z = Math.max(1, Math.min(10, camera.position.z));
             controls.lastInteractionTime = Date.now(); // Atualiza no zoom também
         });
+
+        // ResizeObserver para detectar mudanças no tamanho do canvas
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                // Usa um pequeno delay para garantir que o layout foi aplicado
+                requestAnimationFrame(handleResize);
+            }
+        });
+        resizeObserver.observe(canvas);
+
+        // Resize inicial
+        handleResize();
 
         // Animation loop
         let animationId;
@@ -205,7 +240,10 @@ export class ModelViewer {
             model,
             controls,
             animationId,
-            canvas
+            canvas,
+            resizeObserver,
+            handleResize,
+            initialCameraPos
         };
 
         this.viewers.set(canvasId, viewerData);
@@ -219,8 +257,10 @@ export class ModelViewer {
         if (!viewer) return;
         
         // Se não especificar x/y, usa a rotação inicial
-        viewer.controls.targetRotation.x = x !== null ? x : viewer.controls.initialRotation.x;
-        viewer.controls.targetRotation.y = y !== null ? y : viewer.controls.initialRotation.y;
+        if (viewer.controls.initialRotation) {
+            viewer.controls.targetRotation.x = x !== null ? x : viewer.controls.initialRotation.x;
+            viewer.controls.targetRotation.y = y !== null ? y : viewer.controls.initialRotation.y;
+        }
     }
 
     // Força o retorno à rotação inicial
@@ -229,21 +269,31 @@ export class ModelViewer {
         if (!viewer) return;
         
         // Volta para a rotação inicial
-        viewer.controls.targetRotation.x = viewer.controls.initialRotation.x;
-        viewer.controls.targetRotation.y = viewer.controls.initialRotation.y;
-        viewer.controls.isReturningToCenter = true;
-        viewer.controls.autoRotate = false;
+        if (viewer.controls.initialRotation) {
+            viewer.controls.targetRotation.x = viewer.controls.initialRotation.x;
+            viewer.controls.targetRotation.y = viewer.controls.initialRotation.y;
+            viewer.controls.isReturningToCenter = true;
+            viewer.controls.autoRotate = false;
+        }
     }
 
-    // Resize handler
+    // Resize handler público (mantido para compatibilidade)
     resize(canvasId) {
         const viewer = this.viewers.get(canvasId);
         if (!viewer) return;
+        
+        // Chama a função de resize interna
+        viewer.handleResize();
+    }
 
-        const { canvas, camera, renderer } = viewer;
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    // Reset camera position (útil após resize em dispositivos móveis)
+    resetCameraPosition(canvasId) {
+        const viewer = this.viewers.get(canvasId);
+        if (!viewer) return;
+
+        const { camera, initialCameraPos } = viewer;
+        camera.position.set(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
+        camera.lookAt(0, 0, 0);
     }
 
     // Cleanup
@@ -251,10 +301,14 @@ export class ModelViewer {
         const viewer = this.viewers.get(canvasId);
         if (!viewer) return;
 
-        const { renderer, animationId } = viewer;
+        const { renderer, animationId, resizeObserver } = viewer;
         
         if (animationId) {
             cancelAnimationFrame(animationId);
+        }
+        
+        if (resizeObserver) {
+            resizeObserver.disconnect();
         }
         
         if (renderer) {

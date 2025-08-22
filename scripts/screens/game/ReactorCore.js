@@ -1,5 +1,5 @@
 // scripts/screens/game/ReactorCore.js
-// ReactorCore atualizado para carregar o teu modelo 3D
+// ReactorCore atualizado com fix para redimensionamento
 
 import { ModelViewer } from '../../core/ModelViewer.js';
 
@@ -25,7 +25,7 @@ export function createReactorCoreScreen() {
                     <div class="col-span-1 lg:col-span-4 order-1 lg:order-2">
                         <!-- Modelo 3D -->
                         <div style="border: 2px solid #14fdce; border-radius: 8px; padding: 10px; background: rgba(3, 30, 17, 0.8);">
-                            <canvas id="${canvasId}" style="width: 100%; height: 250px; sm:height-300px; display: block; border-radius: 4px;"></canvas>
+                            <canvas id="${canvasId}" style="width: 100%; height: 250px; display: block; border-radius: 4px;"></canvas>
                         </div>
                         
                         <!-- Controlos -->
@@ -52,6 +52,7 @@ export function createReactorCoreScreen() {
         async onRendered() {
             modelViewer = new ModelViewer();
             
+            // Usar requestAnimationFrame para garantir que o DOM está totalmente renderizado
             requestAnimationFrame(async () => {
                 try {
                     const modelPath = 'assets/3D/reactorcore.glb';
@@ -75,15 +76,8 @@ export function createReactorCoreScreen() {
                         modelViewer.toggleWireframe(canvasId);
                     });
 
-                    // Resize observer
-                    const resizeObserver = new ResizeObserver(() => {
-                        modelViewer.resize(canvasId);
-                    });
-                    
-                    const canvas = document.getElementById(canvasId);
-                    if (canvas) {
-                        resizeObserver.observe(canvas);
-                    }
+                    // O ResizeObserver agora é gerido internamente pelo ModelViewer
+                    // Não precisamos mais de código adicional aqui
 
                 } catch (error) {
                     console.error('Erro ao inicializar o modelo 3D:', error);
