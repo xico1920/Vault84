@@ -34,11 +34,11 @@ export function createWelcomeScreen(manager) {
             const statusLine = document.getElementById('statusLine');
 
             const statusMessages = [
-                "Loading environment",
-                "Checking water pumps",
-                "Stabilizing reactor core",
-                "Calibrating sensors",
-                "All systems ready!"
+                "Loading Environment",
+                "Checking Water Pumps",
+                "Stabilizing Reactor Core",
+                "Calibrating Sensors",
+                "All systems Ready!"
             ];
 
             async function typeWithDots(message, isLast = false) {

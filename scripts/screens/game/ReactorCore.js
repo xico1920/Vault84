@@ -1,7 +1,7 @@
 export function createReactorCoreScreen() {
-    return {
-        async render() {
-            return `
+  return {
+    async render() {
+      return `
                 <div class="reactor-core-container grid grid-cols-12 gap-4">
                     
                     <!-- Conteúdo -->
@@ -12,13 +12,9 @@ export function createReactorCoreScreen() {
 
                     <!-- Vídeo ocupa 12 colunas -->
                     <div class="col-span-4">
-                        <video autoplay loop muted class="w-full">
-                            <source src="./assets/Animation/reactor1.webm" type="video/webm">
-                        </video>
+                        <canvas id="reactorCanvas" class="w-full h-full"></canvas>
                     </div>
-
-                </div>
-            `;
-        }
-    };
+                </div>`;
+    },
+  };
 }
