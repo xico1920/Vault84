@@ -5,7 +5,7 @@ This repository contains the source code and assets for the project.
 
 ---
 
-## ✨ Features
+## Features
 - ⚡ **Reactor and infrastructure management** — keep the vault running efficiently  
 - 🛠 **Modular systems** — ore refinery, workshop, security, water pumps, and more  
 - 🎨 **Interactive low-poly 3D models** — powered by Three.js  
@@ -13,7 +13,7 @@ This repository contains the source code and assets for the project.
 
 ---
 
-## 🧰 Technologies
+## Technologies
 - **Frontend:** HTML, CSS, JavaScript  
 - **3D Rendering:** [Three.js](https://threejs.org/)  
 - **Modeling & Animation:** Blender  
