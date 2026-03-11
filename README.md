@@ -1,5 +1,5 @@
 # ☢️ Vault 84
-Play the game (Still in development) at -> https://xico1920.github.io/Vault84/
+Play the game (Still in development) at -> <a href="https://xico1920.github.io/Vault84/" target="_blank">Vault 84</a>
 
 Vault 84 is a **resource and infrastructure management game** set in a fictional post-apocalyptic vault.  
 This repository contains the source code and project assets.
