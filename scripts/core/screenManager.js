@@ -42,6 +42,7 @@ export class ScreenManager {
         
         // Atualiza o screen atual para o screen novo
         this.currentScreen = screen;
+        this.currentScreenName = screenName;
         
         // Renderiza o screen, passando quaisquer argumentos necessários
         // O render pode ser "async", por isso o await importa

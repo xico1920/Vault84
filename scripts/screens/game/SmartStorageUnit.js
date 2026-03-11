@@ -7,15 +7,23 @@ export function createSmartStorageUnitScreen() {
 
     function upd() {
         const s=GameState.ssm, m=GameState.mining, ref=GameState.refinery, $=id=>document.getElementById(id);
-        const rw=$('ssm-raw');  if(rw)rw.textContent=Math.floor(m.rawOres);
-        const rf=$('ssm-ref');  if(rf)rf.textContent=Math.floor(ref.refinedOres);
+        const rw=$('ssm-raw');  if(rw)rw.textContent=`${Math.floor(m.rawOres)} / ${m.storageMax}`;
+        const rf=$('ssm-ref');  if(rf)rf.textContent=`${Math.floor(ref.refinedOres)} / ${ref.storageMax}`;
         const ca=$('ssm-cash'); if(ca)ca.textContent=GameState.formatCash(GameState.cash);
         const rp=$('ssm-rp');   if(rp)rp.textContent=`${s.rawOrePrice.toFixed(1)}$`;
         const pp=$('ssm-pp');   if(pp)pp.textContent=`${s.refinedOrePrice.toFixed(1)}$`;
-        const rt=$('ssm-rt');   if(rt){rt.textContent=s.rawOrePrice>2?'[+]':'[-]';rt.style.color=s.rawOrePrice>2?'#14fdce':'#ff2222';}
-        const pt=$('ssm-pt');   if(pt){pt.textContent=s.refinedOrePrice>8?'[+]':'[-]';pt.style.color=s.refinedOrePrice>8?'#14fdce':'#ff2222';}
-        const al=$('ssm-auto'); if(al){al.textContent=s.autoSell?'ENABLED':'DISABLED';al.style.color=s.autoSell?'#14fdce':'#3d9970';}
+        const rt=$('ssm-rt');   if(rt){rt.textContent=s.rawOrePrice>2?'▲':'▼';rt.style.color=s.rawOrePrice>2?'#14fdce':'#ff2222';}
+        const pt=$('ssm-pt');   if(pt){pt.textContent=s.refinedOrePrice>8?'▲':'▼';pt.style.color=s.refinedOrePrice>8?'#14fdce':'#ff2222';}
+        const al=$('ssm-auto'); if(al){al.textContent=s.autoSell?'ENABLED':'DISABLED';al.style.color=s.autoSell?'#14fdce':'#5ecba8';}
         const ml=$('ssm-mode'); if(ml)ml.textContent=s.sellMode==='always'?'SELL ALWAYS':`THRESHOLD (${s.sellThreshold}$)`;
+        // Storage bars
+        const rb=$('ssm-raw-bar'); if(rb)rb.style.width=`${Math.min(100,(m.rawOres/m.storageMax)*100)}%`;
+        const rfb=$('ssm-ref-bar'); if(rfb)rfb.style.width=`${Math.min(100,(ref.refinedOres/ref.storageMax)*100)}%`;
+        // Colour warning when near cap
+        const rawPct = m.rawOres / m.storageMax;
+        const refPct = ref.refinedOres / ref.storageMax;
+        if(rb) rb.style.background = rawPct >= 0.9 ? '#ff2222' : rawPct >= 0.7 ? '#ff8800' : '#d4e800';
+        if(rfb) rfb.style.background = refPct >= 0.9 ? '#ff2222' : refPct >= 0.7 ? '#ff8800' : '#14fdce';
     }
 
     function sellAll() {
@@ -52,15 +60,18 @@ export function createSmartStorageUnitScreen() {
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.5rem;">
                     <div>
                       <div class="label">RAW ORES</div>
-                      <div style="font-size:1.8rem;color:#d4e800;" id="ssm-raw">${Math.floor(m.rawOres)}</div>
-                      <div class="label">@ <span id="ssm-rp">${s.rawOrePrice.toFixed(1)}$</span> <span id="ssm-rt">[-]</span></div>
+                      <div style="font-size:1.4rem;color:#d4e800;" id="ssm-raw">${Math.floor(m.rawOres)} / ${m.storageMax}</div>
+                      <div class="bar-track" style="margin:4px 0;"><div class="bar-fill" id="ssm-raw-bar" style="width:${Math.min(100,(m.rawOres/m.storageMax)*100)}%;background:#d4e800;transition:width 0.3s;"></div></div>
+                      <div class="label">@ <span id="ssm-rp">${s.rawOrePrice.toFixed(1)}$</span> <span id="ssm-rt">▼</span></div>
                     </div>
                     <div>
                       <div class="label">REFINED ORES</div>
-                      <div style="font-size:1.8rem;color:#14fdce;" id="ssm-ref">${Math.floor(ref.refinedOres)}</div>
-                      <div class="label">@ <span id="ssm-pp">${s.refinedOrePrice.toFixed(1)}$</span> <span id="ssm-pt">[-]</span></div>
+                      <div style="font-size:1.4rem;color:#14fdce;" id="ssm-ref">${Math.floor(ref.refinedOres)} / ${ref.storageMax}</div>
+                      <div class="bar-track" style="margin:4px 0;"><div class="bar-fill" id="ssm-ref-bar" style="width:${Math.min(100,(ref.refinedOres/ref.storageMax)*100)}%;background:#14fdce;transition:width 0.3s;"></div></div>
+                      <div class="label">@ <span id="ssm-pp">${s.refinedOrePrice.toFixed(1)}$</span> <span id="ssm-pt">▼</span></div>
                     </div>
                   </div>
+                  <div class="label" style="font-size:0.75rem;margin-bottom:0.5rem;">Upgrade SSM in Workshop to increase storage cap.</div>
                   <div style="display:flex;align-items:center;gap:0.75rem;">
                     <button id="ssm-sell" class="btn btn-primary" style="font-size:1.1rem;letter-spacing:2px;padding:7px 20px;">SELL ALL</button>
                     <span id="ssm-fb" style="font-size:0.9rem;color:#14fdce;"></span>

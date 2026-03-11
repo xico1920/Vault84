@@ -1,233 +1,381 @@
-// GameLoop.js - Motor do jogo. Tick a cada segundo.
+// GameLoop.js — Motor do jogo.
 
 import { GameState } from './GameState.js';
 import { SE } from './SoundEngine.js';
 
-const TICK_MS = 1000; // 1 segundo por tick
-
+const TICK_MS = 1000;
 let intervalId = null;
-let tickCount = 0;
-let _paused = false;
+let tickCount  = 0;
+let _paused    = false;
 
-export function startGameLoop() {
-    if (intervalId) return;
-    _paused = false;
-    intervalId = setInterval(tick, TICK_MS);
-}
+export function startGameLoop()  { if (intervalId) return; _paused = false; intervalId = setInterval(tick, TICK_MS); }
+export function stopGameLoop()   { if (intervalId) { clearInterval(intervalId); intervalId = null; } }
+export function pauseGameLoop()  { _paused = true;  if (intervalId) { clearInterval(intervalId); intervalId = null; } }
+export function resumeGameLoop() { if (_paused) { _paused = false; if (!intervalId) intervalId = setInterval(tick, TICK_MS); } }
+export function isGamePaused()   { return _paused; }
 
-export function stopGameLoop() {
-    if (intervalId) { clearInterval(intervalId); intervalId = null; }
-}
-
-export function pauseGameLoop() {
-    _paused = true;
-    if (intervalId) { clearInterval(intervalId); intervalId = null; }
-}
-
-export function resumeGameLoop() {
-    if (_paused) {
-        _paused = false;
-        if (!intervalId) intervalId = setInterval(tick, TICK_MS);
-    }
-}
-
-export function isGamePaused() { return _paused; }
-
+// ─────────────────────────────────────────────────────────────────
 function tick() {
     tickCount++;
 
-    // ── 1. REACTOR: temperatura ────────────────────────────────
+    // 1. REACTOR TEMPERATURE
     updateReactorTemperature();
 
-    // ── 2. MINING ─────────────────────────────────────────────
+    // 2. POWER CASCADE — if reactor offline, cascade shutdown
+    if (!GameState.reactor.online) {
+        cascadeShutdown();
+    }
+
+    // 3. MINING — only if online + reactor power
     if (GameState.mining.online && GameState.reactor.efficiency > 0) {
         const mined = GameState.mining.ratePerTick;
-        GameState.mining.rawOres += mined;
+        const cap   = GameState.mining.storageMax;
+        const prev  = GameState.mining.rawOres;
+        GameState.mining.rawOres = Math.min(cap, prev + mined);
         GameState.mining.totalMined += mined;
+        // Overflow warning
+        if (prev < cap && GameState.mining.rawOres >= cap) {
+            GameState.addLog('RAW ORE STORAGE FULL — ore overflow', 'warn');
+            GameState.emit('alert', { msg: 'RAW STORAGE FULL — sell or upgrade SSM' });
+        }
     }
 
-    // ── 3. REFINERY ───────────────────────────────────────────
+    // 4. REFINERY
     if (GameState.refinery.online && GameState.mining.rawOres > 0) {
         const toRefine = Math.min(GameState.mining.rawOres, GameState.refinery.ratePerTick);
-        GameState.mining.rawOres -= toRefine;
-        GameState.refinery.refinedOres += toRefine;
+        const refCap   = GameState.refinery.storageMax;
+        if (GameState.refinery.refinedOres < refCap) {
+            GameState.mining.rawOres   -= toRefine;
+            GameState.refinery.refinedOres = Math.min(refCap, GameState.refinery.refinedOres + toRefine);
+        }
     }
 
-    // ── 4. SSM auto-sell ──────────────────────────────────────
-    if (GameState.ssm.autoSell) {
-        autoSellOres();
-    }
+    // 5. SSM AUTO-SELL
+    if (GameState.ssm.autoSell) autoSellOres();
 
-    // ── 5. Ore prices variance (a cada 15 ticks) ──────────────
+    // 6. PRICE FLUCTUATION every 15 ticks
     GameState.ssm.priceVarianceTimer++;
     if (GameState.ssm.priceVarianceTimer >= 15) {
         GameState.ssm.priceVarianceTimer = 0;
         fluctuatePrices();
     }
 
-    // ── 6. Security threats ───────────────────────────────────
+    // 7. WEAR / DEGRADATION every 30 ticks
+    if (tickCount % 30 === 0) updateWear();
+
+    // 8. SECURITY THREATS
     GameState.security.nextThreatTimer++;
     if (GameState.security.nextThreatTimer >= GameState.security.threatInterval) {
         GameState.security.nextThreatTimer = 0;
         maybeSpawnThreat();
     }
+    tickThreats();
 
-    // Notifica todos os módulos que o tick aconteceu
+    // 9. PERIMETER SENSORS
+    GameState.security.perimeter.motionTimer++;
+    if (GameState.security.perimeter.motionTimer >= GameState.security.perimeter.motionInterval) {
+        GameState.security.perimeter.motionTimer = 0;
+        maybePerimeterEvent();
+    }
+
+    // 10. TEMP WARNINGS
+    const temp = GameState.reactor.temperature;
+    if (temp >= 1200 && temp < 1201) {
+        GameState.addLog(`REACTOR TEMP WARNING — ${temp}°C`, 'warn');
+        SE.threat();
+    }
+
     GameState.emit('tick', tickCount);
 }
 
+// ─────────────────────────────────────────────────────────────────
+function cascadeShutdown() {
+    let cascaded = false;
+    if (GameState.mining.online)   { GameState.mining.online   = false; cascaded = true; }
+    if (GameState.refinery.online) { GameState.refinery.online = false; cascaded = true; }
+    if (GameState.water.pumpOnline){ GameState.water.pumpOnline = false; cascaded = true; }
+    if (cascaded) {
+        GameState.addLog('POWER FAILURE — cascade shutdown initiated', 'crit');
+        GameState.emit('cascade', {});
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
 function updateReactorTemperature() {
     const r = GameState.reactor;
     const w = GameState.water;
 
-    const coolantMultiplier = {
-        'low': 0.4,
-        'regular': 0.8,
-        'optimal': 1.0
-    }[r.coolantFlow] || 1.0;
-
+    const coolantMultiplier = { 'low': 0.4, 'regular': 0.8, 'optimal': 1.0 }[r.coolantFlow] || 1.0;
     const waterActive = w.pumpOnline;
 
-    // Heat scales with reactor upgrade level — higher level = more power = more heat
-    // upgradeLevel 1 = 12°C/tick, level 2 = 20, level 3 = 30, level 4 = 42, etc.
     const reactorHeatBase = r.upgradeLevel <= 1 ? 12 : 10 + (r.upgradeLevel * r.upgradeLevel * 2.5);
-    const heatGenerated = r.online ? reactorHeatBase : 0;
+    const heatGenerated   = r.online ? reactorHeatBase : 0;
 
-    // Water cooling capacity scales with WATER upgrade level only
-    // water level 1 can handle ~reactor level 1 comfortably
-    // Each water upgrade adds meaningful cooling but player must keep pace with reactor
-    const waterCoolingBase = 14 + (w.upgradeLevel * 8); // lv1=22, lv2=30, lv3=38, lv4=46
-    const coolingRate = waterActive ? (waterCoolingBase * coolantMultiplier) : 1;
-
-    // Net change this tick
-    const netDelta = heatGenerated - coolingRate;
+    const waterCoolingBase = 14 + (w.upgradeLevel * 8);
+    const coolingRate      = waterActive ? (waterCoolingBase * coolantMultiplier) : 1;
+    const netDelta         = heatGenerated - coolingRate;
 
     if (waterActive) {
         if (netDelta > 0) {
-            // Overheating — reactor too powerful for current water level
             r.temperature += netDelta * 0.8;
         } else {
-            // Cooling toward equilibrium
             const equilibrium = r.online ? Math.max(200, 120 + (r.upgradeLevel * 60) - (w.upgradeLevel * 40)) : 80;
-            if (r.temperature > equilibrium) {
-                r.temperature -= Math.min(Math.abs(netDelta) * 0.5, r.temperature - equilibrium);
-            } else if (r.temperature < equilibrium && r.online) {
-                r.temperature += 2;
-            }
+            if (r.temperature > equilibrium)       r.temperature -= Math.min(Math.abs(netDelta) * 0.5, r.temperature - equilibrium);
+            else if (r.temperature < equilibrium && r.online) r.temperature += 2;
         }
     } else {
-        // Pump offline: temp climbs steadily — reactor heat has nowhere to go
-        if (r.online) {
-            r.temperature += heatGenerated * 0.9;
-        } else {
-            r.temperature = Math.max(20, r.temperature - 1);
-        }
+        r.temperature += r.online ? heatGenerated * 0.9 : -1;
     }
 
-    // Emergency shutdown at 1800°C
     if (r.temperature >= 1800 && r.online) {
         r.online = false;
+        GameState.addLog('REACTOR EMERGENCY SHUTDOWN — MELTDOWN AVERTED', 'crit');
         GameState.emit('alert', { type: 'MELTDOWN', msg: 'REACTOR EMERGENCY SHUTDOWN — TEMPERATURE CRITICAL' });
+        SE.threat();
     }
-
     r.temperature = Math.round(Math.max(20, r.temperature));
 }
 
+// ─────────────────────────────────────────────────────────────────
+function updateWear() {
+    // Reactor wears faster at high temp and high upgrade level
+    if (GameState.reactor.online) {
+        const tempFactor = GameState.reactor.temperature / 1000;
+        const gain = 0.3 + tempFactor * 0.4 + (GameState.reactor.upgradeLevel - 1) * 0.1;
+        GameState.reactor.wear = Math.min(100, GameState.reactor.wear + gain);
+        if (GameState.reactor.wear >= 75 && GameState.reactor.wear < 76) {
+            GameState.addLog('REACTOR heavily worn — efficiency dropping', 'warn');
+            GameState.emit('alert', { msg: 'REACTOR WEAR CRITICAL — repair needed' });
+        }
+    }
+
+    // Mining wears with use
+    if (GameState.mining.online) {
+        const gain = 0.2 + (GameState.mining.upgradeLevel - 1) * 0.08;
+        GameState.mining.wear = Math.min(100, GameState.mining.wear + gain);
+        if (GameState.mining.wear >= 75 && GameState.mining.wear < 76) {
+            GameState.addLog('MINING SHAFT heavily worn — output dropping', 'warn');
+        }
+    }
+
+    // Refinery wears with activity
+    if (GameState.refinery.online && GameState.refinery.refinedOres > 0) {
+        const gain = 0.15 + (GameState.refinery.upgradeLevel - 1) * 0.06;
+        GameState.refinery.wear = Math.min(100, GameState.refinery.wear + gain);
+    }
+
+    // Water pump wears when running
+    if (GameState.water.pumpOnline) {
+        const gain = 0.1 + (GameState.water.upgradeLevel - 1) * 0.05;
+        GameState.water.wear = Math.min(100, GameState.water.wear + gain);
+        if (GameState.water.wear >= 75 && GameState.water.wear < 76) {
+            GameState.addLog('WATER PUMP heavily worn — cooling degraded', 'warn');
+        }
+    }
+
+    GameState.emit('wear', {});
+}
+
+export function repairSystem(system) {
+    const repairCosts = { reactor: 80, mining: 40, refinery: 55, water: 45 };
+    const cost = repairCosts[system];
+    if (!cost || GameState.cash < cost) return false;
+    GameState.cash -= cost;
+    GameState[system].wear = 0;
+    GameState.addLog(`${system.toUpperCase()} repaired — wear reset`, 'ok');
+    GameState.emit('repair', { system });
+    SE.resolve();
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────
 function autoSellOres() {
     const s = GameState.ssm;
-    
-    if (s.sellMode === 'always') {
-        // Vende tudo automaticamente
-        const rawEarnings = Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
-        const refEarnings = Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
-        GameState.cash += rawEarnings + refEarnings;
-        GameState.mining.rawOres = GameState.mining.rawOres % 1;
-        GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1;
-    } else if (s.sellMode === 'threshold') {
-        // Só vende se tiver acima do threshold de preço (média ponderada)
-        const avgPrice = (s.rawOrePrice + s.refinedOrePrice * 2) / 3;
-        if (avgPrice >= s.sellThreshold) {
-            const rawEarnings = Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
-            const refEarnings = Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
-            GameState.cash += rawEarnings + refEarnings;
+    const sell = () => {
+        const re = Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
+        const rfe = Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
+        if (re + rfe > 0) {
+            GameState.cash += re + rfe;
             GameState.mining.rawOres = GameState.mining.rawOres % 1;
             GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1;
         }
+    };
+    if (s.sellMode === 'always') { sell(); }
+    else if (s.sellMode === 'threshold') {
+        const avg = (s.rawOrePrice + s.refinedOrePrice * 2) / 3;
+        if (avg >= s.sellThreshold) sell();
     }
 }
 
+// ─────────────────────────────────────────────────────────────────
 function fluctuatePrices() {
     const s = GameState.ssm;
-    // Variação de ±20% nos preços base
-    s.rawOrePrice = Math.max(1, Math.round(2 * (0.8 + Math.random() * 0.4) * 10) / 10);
-    s.refinedOrePrice = Math.max(4, Math.round(8 * (0.8 + Math.random() * 0.4) * 10) / 10);
+    const prevRaw = s.rawOrePrice, prevRef = s.refinedOrePrice;
+
+    // Random market events
+    const spike = Math.random() < 0.08; // 8% chance of price spike
+    const crash = Math.random() < 0.05; // 5% chance of crash
+    const mult  = spike ? (1.4 + Math.random() * 0.6) : crash ? (0.4 + Math.random() * 0.3) : (0.8 + Math.random() * 0.4);
+
+    s.rawOrePrice      = Math.max(1, Math.round(2 * mult * 10) / 10);
+    s.refinedOrePrice  = Math.max(4, Math.round(8 * mult * 10) / 10);
+
+    if (spike) {
+        GameState.addLog(`MARKET SPIKE — ore prices x${mult.toFixed(1)}`, 'ok');
+        GameState.emit('alert', { msg: `PRICE SPIKE: ORE +${Math.round((mult-1)*100)}% — SELL NOW` });
+    } else if (crash) {
+        GameState.addLog(`MARKET CRASH — ore prices -${Math.round((1-mult)*100)}%`, 'warn');
+    }
+
     GameState.emit('priceUpdate', { raw: s.rawOrePrice, refined: s.refinedOrePrice });
 }
 
+// ─────────────────────────────────────────────────────────────────
 function maybeSpawnThreat() {
     const w = GameState.workshop.upgrades;
-
-    // Total non-security upgrade levels (each upgrade attracts more system complexity/attack surface)
-    const offenseLevel = (w.reactor.level - 1) + (w.mining.level - 1) +
-                         (w.refinery.level - 1) + (w.water.level - 1) + (w.ssm.level - 1);
-
-    // Security level reduces probability
+    const offenseLevel = (w.reactor.level-1)+(w.mining.level-1)+(w.refinery.level-1)+(w.water.level-1)+(w.ssm.level-1);
     const defenseLevel = w.security.level - 1;
+    const threatScore  = (offenseLevel * 0.06) - (defenseLevel * 0.10);
+    const spawnChance  = Math.max(0, Math.min(0.75, threatScore));
+    if (offenseLevel === 0 || Math.random() > spawnChance) return;
 
-    // Base probability: 0% at level 0, scales up with upgrades, reduced by security
-    // Net threat score: each offense upgrade adds ~6%, each security upgrade removes ~10%
-    const threatScore = (offenseLevel * 0.06) - (defenseLevel * 0.10);
-    const spawnChance = Math.max(0, Math.min(0.75, threatScore));
+    // THREAT TYPES with distinct mechanics
+    const threatTypes = [
+        {
+            type: 'VIRUS',
+            color: '#ff2222',
+            desc: 'Corrupting system files',
+            clicksPerSev: 6,    // easiest — click to purge
+            timePerSev: 18,
+            onSpawn: (t) => {
+                // Virus slowly drains efficiency — ongoing tick damage
+                GameState.addLog(`VIRUS detected in ${t.target.toUpperCase()} — purge immediately`, 'crit');
+            },
+            onTick: (t) => {
+                // Gradual drain while active
+                if (t.target === 'mining') GameState.mining.rawOres = Math.max(0, GameState.mining.rawOres - 0.1 * t.severity);
+                if (t.target === 'refinery') GameState.refinery.refinedOres = Math.max(0, GameState.refinery.refinedOres - 0.05 * t.severity);
+                if (t.target === 'ssm') GameState.cash = Math.max(0, GameState.cash - 0.5 * t.severity);
+            }
+        },
+        {
+            type: 'BREACH',
+            color: '#ff8800',
+            desc: 'Unauthorized access — draining credits',
+            clicksPerSev: 10,   // harder — drains caps continuously
+            timePerSev: 25,
+            onSpawn: (t) => {
+                GameState.addLog(`BREACH detected — ${t.target.toUpperCase()} compromised`, 'crit');
+            },
+            onTick: (t) => {
+                // Breach drains caps rapidly
+                GameState.cash = Math.max(0, GameState.cash - 2 * t.severity);
+            }
+        },
+        {
+            type: 'MALWARE',
+            color: '#d400ff',
+            desc: 'System malware — disabling subsystem',
+            clicksPerSev: 14,   // hardest
+            timePerSev: 30,
+            onSpawn: (t) => {
+                // Malware immediately takes a system offline
+                GameState.addLog(`MALWARE — ${t.target.toUpperCase()} forcibly disabled`, 'crit');
+                GameState.emit('alert', { msg: `MALWARE: ${t.target.toUpperCase()} OFFLINE` });
+                switch(t.target) {
+                    case 'mining':   GameState.mining.online   = false; break;
+                    case 'refinery': GameState.refinery.online = false; break;
+                    case 'water':    GameState.water.pumpOnline = false; break;
+                    case 'reactor':  GameState.reactor.temperature += 200 * t.severity; break;
+                    case 'ssm':      GameState.cash = Math.max(0, GameState.cash - 50 * t.severity); break;
+                }
+            },
+            onTick: () => {} // damage already done on spawn
+        }
+    ];
 
-    // Early game (no upgrades) = no threats
-    if (offenseLevel === 0) return;
-    if (Math.random() > spawnChance) return;
-
-    const types = ['VIRUS', 'MALFUNCTION'];
-    const targets = ['reactor', 'mining', 'refinery', 'water', 'ssm'];
+    const targets    = ['reactor','mining','refinery','water','ssm'];
+    const tDef       = threatTypes[Math.floor(Math.random() * threatTypes.length)];
+    const severity   = Math.floor(Math.random() * 3) + 1;
     const threat = {
-        id: Date.now(),
-        type: types[Math.floor(Math.random() * types.length)],
-        target: targets[Math.floor(Math.random() * targets.length)],
-        severity: Math.floor(Math.random() * 3) + 1,
-        active: true,
-        timeLeft: 60  // segundos para resolver antes de penalidade
+        id:       Date.now(),
+        type:     tDef.type,
+        color:    tDef.color,
+        desc:     tDef.desc,
+        target:   targets[Math.floor(Math.random() * targets.length)],
+        severity,
+        clicks:   0,
+        clicksReq: tDef.clicksPerSev * severity,
+        timeLeft: tDef.timePerSev * severity,
+        onTick:   tDef.onTick,
+        active:   true,
     };
 
-    // Aplica penalidade imediata leve
-    applyThreatEffect(threat, 0.5);
-
+    tDef.onSpawn(threat);
     GameState.security.threats.push(threat);
     GameState.emit('threat', threat);
     SE.threat();
 }
 
-export function resolveThreat(threatId) {
+// Tick active threats — drain effects + countdown
+export function tickThreats() {
+    const expired = [];
+    GameState.security.threats.forEach(t => {
+        t.timeLeft--;
+        if (t.onTick) t.onTick(t);
+        if (t.timeLeft <= 0) expired.push(t.id);
+    });
+    expired.forEach(id => {
+        const t = GameState.security.threats.find(x => x.id === id);
+        if (t) {
+            GameState.addLog(`${t.type} on ${t.target.toUpperCase()} expired — system damaged`, 'crit');
+            // On expiry: bring system back online but heavily worn
+            if (t.type === 'MALWARE') {
+                switch(t.target) {
+                    case 'mining':   GameState.mining.online   = true; GameState.mining.wear   = Math.min(100, GameState.mining.wear   + 30); break;
+                    case 'refinery': GameState.refinery.online = true; GameState.refinery.wear = Math.min(100, GameState.refinery.wear + 30); break;
+                    case 'water':    GameState.water.pumpOnline= true; GameState.water.wear    = Math.min(100, GameState.water.wear    + 30); break;
+                }
+            }
+        }
+        resolveThreat(id, true); // silent resolve — no SE.resolve()
+    });
+}
+
+export function resolveThreat(threatId, silent = false) {
     const idx = GameState.security.threats.findIndex(t => t.id === threatId);
     if (idx === -1) return;
-    GameState.security.threats[idx].active = false;
+    const t = GameState.security.threats[idx];
+    // Restore malware-disabled systems
+    if (t.type === 'MALWARE' && !silent) {
+        switch(t.target) {
+            case 'mining':   GameState.mining.online    = true; break;
+            case 'refinery': GameState.refinery.online  = true; break;
+            case 'water':    GameState.water.pumpOnline = true; break;
+        }
+        GameState.addLog(`MALWARE on ${t.target.toUpperCase()} neutralised — system restored`, 'ok');
+    } else if (!silent) {
+        GameState.addLog(`${t.type} on ${t.target.toUpperCase()} neutralised`, 'ok');
+    }
     GameState.security.threats.splice(idx, 1);
     GameState.emit('threatResolved', threatId);
 }
 
-function applyThreatEffect(threat, multiplier = 1) {
-    switch(threat.target) {
-        case 'reactor':
-            GameState.reactor.temperature += 50 * threat.severity * multiplier;
-            break;
-        case 'mining':
-            GameState.mining.rawOres = Math.max(0, GameState.mining.rawOres - 5 * threat.severity * multiplier);
-            break;
-        case 'refinery':
-            GameState.refinery.refinedOres = Math.max(0, GameState.refinery.refinedOres - 3 * threat.severity * multiplier);
-            break;
-        case 'water':
-            // Pump fica offline temporariamente
-            GameState.water.pumpOnline = false;
-            setTimeout(() => { GameState.water.pumpOnline = true; }, 10000);
-            break;
-        case 'ssm':
-            GameState.cash = Math.max(0, GameState.cash - 20 * threat.severity * multiplier);
-            break;
-    }
+// ─────────────────────────────────────────────────────────────────
+function maybePerimeterEvent() {
+    const sec = GameState.security.perimeter;
+    const w   = GameState.workshop.upgrades;
+
+    // Higher security level = better detection, fewer false alarms
+    const detectionChance = 0.15 + (w.security.level - 1) * 0.05;
+    if (Math.random() > detectionChance) return;
+
+    const zone = sec.zones[Math.floor(Math.random() * sec.zones.length)];
+    const alert = { zone, ts: new Date().toLocaleTimeString(), resolved: false };
+    sec.alerts.unshift(alert);
+    if (sec.alerts.length > 10) sec.alerts.pop();
+
+    GameState.addLog(`MOTION DETECTED — sector ${zone}`, 'warn');
+    GameState.emit('perimeterAlert', alert);
+    SE.threat();
 }

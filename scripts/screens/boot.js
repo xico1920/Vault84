@@ -1,10 +1,102 @@
 // Import da função sleep da utils, dá jeito para as animações
 import { sleep } from '../core/utils.js';
-// Função que cria o Boot-up
-// Parecida à função do original "game.js", só que passada para "módulo" 
+
+// ── Easter egg: boot interrupted crash screen ─────────────────
+async function renderBootCorrupted(root, audio) {
+    const lines = [
+        { t: 0,    txt: 'VOLTECH SYSTEMS(TM) BIOS v2.17',            col: '#5ecba8' },
+        { t: 300,  txt: 'Resuming boot sequence...',                  col: '#5ecba8' },
+        { t: 700,  txt: '> Checking bootloader integrity...',         col: '#5ecba8' },
+        { t: 1200, txt: '> [ERR 0x0041] BOOTLOADER SECTOR CORRUPT',   col: '#ff2222' },
+        { t: 1600, txt: '> Primary boot record: DAMAGED',             col: '#ff2222' },
+        { t: 2000, txt: '> Attempting secondary loader... FAILED',    col: '#ff8800' },
+        { t: 2500, txt: '> MEM PARITY ERROR AT 0x0000:0x04A2',        col: '#ff8800' },
+        { t: 2900, txt: '> STACK TRACE:',                             col: '#ff8800' },
+        { t: 3100, txt: '    #0  BIOS_STAGE2 + 0x00f4',              col: '#ff8800' },
+        { t: 3200, txt: '    #1  KERN_INIT   + 0x0017',              col: '#ff8800' },
+        { t: 3300, txt: '    #2  <CORRUPTED>',                        col: '#ff2222' },
+        { t: 3800, txt: '> !! FATAL: BOOT SEQUENCE INTERRUPTED BY POWER LOSS', col: '#ff2222' },
+        { t: 4400, txt: '> System halted to prevent data loss.',      col: '#ff8800' },
+        { t: 5000, txt: '> Run full hardware diagnostic before restart.', col: '#5ecba8' },
+    ];
+
+    root.innerHTML = `
+        <div class="piece output" style="padding:2.5rem;text-align:left;overflow-y:auto;">
+            <div id="crash-log" style="line-height:1.7;font-size:0.95rem;letter-spacing:0.5px;font-family:'VT323',monospace;"></div>
+            <div id="crash-actions" style="margin-top:2rem;display:none;">
+                <div style="border:1px solid #ff2222;padding:1rem 1.2rem;max-width:400px;background:rgba(255,34,34,0.04);">
+                    <div style="color:#ff2222;font-size:0.75rem;letter-spacing:2px;margin-bottom:0.8rem;">!! SYSTEM HALTED</div>
+                    <div style="color:#5ecba8;font-size:0.85rem;margin-bottom:1.2rem;line-height:1.6;">
+                        Boot loader failed due to power interruption.<br>
+                        Hardware integrity check required.<br>
+                        Press COLD BOOT to reinitialize all systems.
+                    </div>
+                    <button id="crash-reboot" style="
+                        font-family:'VT323',monospace;
+                        font-size:1.1rem;
+                        letter-spacing:3px;
+                        padding:0.6rem 1.4rem;
+                        background:transparent;
+                        border:1px solid #ff2222;
+                        color:#ff2222;
+                        cursor:pointer;
+                        width:100%;
+                        transition:background 0.15s,color 0.15s;
+                    ">[ COLD BOOT ]</button>
+                </div>
+            </div>
+        </div>`;
+
+    const log = document.getElementById('crash-log');
+    audio.setVolume('boot', 0.15);
+    audio.play('boot');
+
+    for (const { t, txt, col } of lines) {
+        await sleep(t === 0 ? 0 : 300);
+        const p = document.createElement('p');
+        p.style.margin = '0';
+        p.style.color = col;
+        p.textContent = `> ${txt}`;
+        log.appendChild(p);
+        root.scrollTop = root.scrollHeight;
+        audio.play('click');
+    }
+
+    // Blinking cursor stall — feels like it's hanging
+    await sleep(600);
+    const cursor = document.createElement('span');
+    cursor.textContent = '_';
+    cursor.style.animation = 'blink 0.5s step-end infinite';
+    cursor.style.color = '#ff2222';
+    log.appendChild(cursor);
+    await sleep(1800);
+    cursor.remove();
+
+    // Show the reboot panel
+    audio.stop('boot');
+    const actions = document.getElementById('crash-actions');
+    if (actions) actions.style.display = 'block';
+
+    const btn = document.getElementById('crash-reboot');
+    if (btn) {
+        btn.addEventListener('mouseenter', () => { btn.style.background='#ff2222'; btn.style.color='#020f07'; });
+        btn.addEventListener('mouseleave', () => { btn.style.background='transparent'; btn.style.color='#ff2222'; });
+        btn.addEventListener('click', () => {
+            sessionStorage.removeItem('vault84_boot_interrupted');
+            window.location.reload();
+        });
+    }
+}
+
 export function createBootScreen(manager) {
     return {
         async render(username) {
+
+            // ── Easter egg check ──────────────────────────────
+            if (sessionStorage.getItem('vault84_boot_interrupted')) {
+                await renderBootCorrupted(manager.root, manager.audio);
+                return; // don't proceed to normal boot
+            }
             // O HTML do boot-up screen
             manager.root.innerHTML = `
                 <div class="piece output" style="padding:2.5rem 2.5rem 2rem 2.5rem;text-align:left;overflow-y:auto;">

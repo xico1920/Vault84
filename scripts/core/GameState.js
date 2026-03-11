@@ -1,30 +1,35 @@
-// GameState.js - Estado global do jogo. Tudo passa por aqui.
+// GameState.js - Estado global do jogo.
 
 export const GameState = {
     // ─── ECONOMIA ────────────────────────────────────────────────
     cash: 0,
 
+    // ─── EVENT LOG ───────────────────────────────────────────────
+    eventLog: [], // { time, msg, type: 'info'|'warn'|'crit'|'ok' }
+
     // ─── REACTOR CORE ────────────────────────────────────────────
     reactor: {
         online: true,
-        temperature: 720,       // °C  (< 1000 = 100%, > 1500 = 0%)
-        targetTemp: 720,
-        coolantFlow: 'optimal', // 'low' | 'regular' | 'optimal'
+        temperature: 720,
+        coolantFlow: 'optimal',
         upgradeLevel: 1,
+        wear: 0,          // 0–100: degradação acumulada
+        wearDrainRate: 0, // eficiência perdida por wear
 
-        get powerGW() {
-            return this.online ? 2.4 * this.upgradeLevel : 0;
-        },
+        get powerGW()    { return this.online ? 2.4 * this.upgradeLevel : 0; },
+        get wearPenalty(){ return Math.max(0, this.wear / 100 * 0.4); }, // até -40% eficiência
         get efficiency() {
             if (!this.online) return 0;
-            if (this.temperature <= 1000) return 1.0;
-            if (this.temperature >= 1500) return 0.0;
-            return 1.0 - (this.temperature - 1000) / 500;
+            let eff = 1.0 - this.wearPenalty;
+            if (this.temperature <= 1000) return eff;
+            if (this.temperature >= 1500) return 0;
+            return eff * (1.0 - (this.temperature - 1000) / 500);
         },
         get status() {
             if (!this.online) return 'OFFLINE';
             if (this.temperature >= 1500) return 'CRITICAL';
             if (this.temperature >= 1000) return 'WARNING';
+            if (this.wear >= 70) return 'WORN';
             return 'ONLINE';
         }
     },
@@ -32,14 +37,12 @@ export const GameState = {
     // ─── WATER TREATMENT ─────────────────────────────────────────
     water: {
         pumpOnline: true,
-        flowRate: 100,      // L/min base
+        flowRate: 100,
         upgradeLevel: 1,
-
+        wear: 0,
         get coolingPower() {
             if (!this.pumpOnline) return 0;
-            // Quanto mais power vem do reactor, mais precisa de água
-            const base = this.flowRate * this.upgradeLevel;
-            return base;
+            return this.flowRate * this.upgradeLevel * (1 - this.wear / 100 * 0.3);
         }
     },
 
@@ -48,13 +51,14 @@ export const GameState = {
         online: true,
         rawOres: 0,
         totalMined: 0,
-        autoRate: 1,        // ores/tick automático
+        autoRate: 1,
         upgradeLevel: 1,
-        lastClickBonus: 0,
-
+        storageMax: 50,   // cap de armazenamento — sobe com SSM upgrade
+        wear: 0,
         get ratePerTick() {
             const reactorBoost = GameState.reactor.efficiency;
-            return this.autoRate * this.upgradeLevel * reactorBoost;
+            const wearPenalty  = Math.max(0, this.wear / 100 * 0.5);
+            return this.autoRate * this.upgradeLevel * reactorBoost * (1 - wearPenalty);
         }
     },
 
@@ -63,10 +67,12 @@ export const GameState = {
         online: true,
         refinedOres: 0,
         upgradeLevel: 1,
-        refineRate: 0.5,    // ores refinadas por tick (por raw ore consumida)
-
+        refineRate: 0.5,
+        storageMax: 30,   // cap de armazenamento refined
+        wear: 0,
         get efficiency() {
-            return GameState.reactor.efficiency * (GameState.water.pumpOnline ? 1.0 : 0.4);
+            const wearPenalty = Math.max(0, this.wear / 100 * 0.4);
+            return GameState.reactor.efficiency * (GameState.water.pumpOnline ? 1.0 : 0.4) * (1 - wearPenalty);
         },
         get ratePerTick() {
             return this.refineRate * this.upgradeLevel * this.efficiency;
@@ -76,34 +82,40 @@ export const GameState = {
     // ─── SSM ──────────────────────────────────────────────────────
     ssm: {
         autoSell: false,
-        sellMode: 'always',     // 'always' | 'threshold'
+        sellMode: 'always',
         sellThreshold: 50,
-        rawOrePrice: 2,         // $ por raw ore (varia)
-        refinedOrePrice: 8,     // $ por refined ore (varia)
+        rawOrePrice: 2,
+        refinedOrePrice: 8,
         priceVarianceTimer: 0,
         upgradeLevel: 1,
-
-        get rawPrice() { return this.rawOrePrice; },
+        get rawPrice()     { return this.rawOrePrice; },
         get refinedPrice() { return this.refinedOrePrice; }
     },
 
     // ─── SECURITY ─────────────────────────────────────────────────
     security: {
         level: 1,
-        threats: [],        // { id, type, target, severity, active }
+        threats: [],
         nextThreatTimer: 0,
-        threatInterval: 120, // ticks entre ameaças
+        threatInterval: 120,
+        // Perimeter sensors — motion detection zones
+        perimeter: {
+            zones: ['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'EPSILON'],
+            alerts: [],   // { zone, time, resolved }
+            motionTimer: 0,
+            motionInterval: 180, // ticks entre eventos de perim
+        }
     },
 
     // ─── WORKSHOP ────────────────────────────────────────────────
     workshop: {
         upgrades: {
-            reactor:  { level: 1, cost: 100  },
-            mining:   { level: 1, cost: 50   },
-            refinery: { level: 1, cost: 75   },
-            water:    { level: 1, cost: 60   },
-            ssm:      { level: 1, cost: 80   },
-            security: { level: 1, cost: 90   },
+            reactor:  { level: 1, cost: 100 },
+            mining:   { level: 1, cost: 50  },
+            refinery: { level: 1, cost: 75  },
+            water:    { level: 1, cost: 60  },
+            ssm:      { level: 1, cost: 80  },
+            security: { level: 1, cost: 90  },
         }
     },
 
@@ -114,13 +126,15 @@ export const GameState = {
         return `${Math.floor(val)}$`;
     },
 
-    // listeners para UI reactive
-    _listeners: {},
-    on(event, fn) {
-        if (!this._listeners[event]) this._listeners[event] = [];
-        this._listeners[event].push(fn);
+    addLog(msg, type = 'info') {
+        const now = new Date();
+        const ts  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        this.eventLog.unshift({ ts, msg, type });
+        if (this.eventLog.length > 60) this.eventLog.pop();
+        this.emit('log', { ts, msg, type });
     },
-    emit(event, data) {
-        (this._listeners[event] || []).forEach(fn => fn(data));
-    }
+
+    _listeners: {},
+    on(event, fn)   { if (!this._listeners[event]) this._listeners[event] = []; this._listeners[event].push(fn); },
+    emit(event, data) { (this._listeners[event] || []).forEach(fn => fn(data)); }
 };

@@ -3,9 +3,10 @@ import { pauseGameLoop, resumeGameLoop, isGamePaused } from './core/GameLoop.js'
 
 // Expose globally for the CRT controls (non-module script)
 window._SE = SE;
-window._pauseGame  = pauseGameLoop;
-window._resumeGame = resumeGameLoop;
+window._pauseGame    = pauseGameLoop;
+window._resumeGame   = resumeGameLoop;
 window._isGamePaused = isGamePaused;
+// _getCurrentScreen is set after DOMContentLoaded so screenManager exists
 
 // Global click sound — fires on any button/link click
 document.addEventListener('click', function(e) {
@@ -37,8 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     screenManager.registerScreen('welcome', createWelcomeScreen(screenManager));
     screenManager.registerScreen('game', createGameScreen(screenManager, USERNAME_KEY));
 
+    // Expose screen getter now that screenManager exists
+    window._getCurrentScreen = () => screenManager.currentScreenName || null;
+
     // Inicializa sempre no start screen
-    // Há de ser mudado depois para saltar o boot/auth/welcome, dependendo da preferência do user
     const savedUsername = localStorage.getItem(USERNAME_KEY);
     screenManager.navigateTo('start', savedUsername);
 });

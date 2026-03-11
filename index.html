@@ -6,7 +6,7 @@
   <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/img/logo_voltec2.png" type=".png">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Tailwind removed: game uses custom CSS only -->
   <link rel="preload" href="assets/audio/boot.mp3" as="audio">
   <link rel="preload" href="assets/audio/welcome.mp3" as="audio">
   <link rel="preload" href="assets/audio/click.mp3" as="audio">
@@ -17,9 +17,9 @@
   <div class="monitor-shell">
 
     <div class="frame" id="crt-frame">
-      <div class="game"      style="position:absolute;inset:0;overflow:hidden;"></div>
-      <div class="scanlines" style="position:absolute;inset:0;pointer-events:none;z-index:11;border-radius:1.2rem;"></div>
-      <div class="glow"      style="position:absolute;inset:0;pointer-events:none;z-index:1;"></div>
+      <div class="game"      style="position:absolute;inset:0;overflow:hidden;transform-origin:center center;"></div>
+      <div class="scanlines" style="position:absolute;inset:0;pointer-events:none;z-index:11;border-radius:1.2rem;transform-origin:center center;"></div>
+      <div class="glow"      style="position:absolute;inset:0;pointer-events:none;z-index:1;transform-origin:center center;"></div>
     </div>
 
     <div class="crt-controls">
@@ -72,213 +72,196 @@
   <script type="module" src="scripts/main.js"></script>
 
   <script>
-    window.addEventListener('DOMContentLoaded', function() {
-      var frame    = document.getElementById('crt-frame');
-      var powerBtn = document.getElementById('power-btn');
-      var ledPower = document.getElementById('led-power');
-      var ledDisk  = document.getElementById('led-disk');
-      var ledNet   = document.getElementById('led-net');
-      var dialBri  = document.getElementById('dial-brightness');
-      var dialCon  = document.getElementById('dial-contrast');
+    window.addEventListener('load', function() {
+      var frame     = document.getElementById('crt-frame');
+      var game      = frame.querySelector('.game');
+      var scanlines = frame.querySelector('.scanlines');
+      var glow      = frame.querySelector('.glow');
+      var powerBtn  = document.getElementById('power-btn');
+      var ledPower  = document.getElementById('led-power');
+      var ledDisk   = document.getElementById('led-disk');
+      var ledNet    = document.getElementById('led-net');
+      var dialBri   = document.getElementById('dial-brightness');
+      var dialCon   = document.getElementById('dial-contrast');
 
       var powered = true, brightness = 100, contrast = 100;
       var crtAnimating = false;
 
-      // ── CRT overlay for turn-on/off effect ──────────────────────
-      var crtOverlay = document.createElement('div');
-      crtOverlay.id = 'crt-fx-overlay';
-      crtOverlay.style.cssText = [
-        'position:absolute','inset:0','pointer-events:none',
-        'z-index:50','border-radius:1.2rem','overflow:hidden',
-        'display:none'
-      ].join(';');
-      frame.appendChild(crtOverlay);
-
-      function applyFilter() {
-        if (powered) {
-          frame.style.filter = 'brightness('+brightness/100+') contrast('+contrast/100+')';
+      // Apply transform + filter to all three layers simultaneously
+      function setCRT(scaleY, scaleX, br, sat, opacity) {
+        var t = 'scaleY('+scaleY+') scaleX('+scaleX+')';
+        game.style.transform      = t;
+        scanlines.style.transform = t;
+        glow.style.transform      = t;
+        game.style.filter = 'brightness('+br+') saturate('+sat+')';
+        if (opacity != null) {
+          game.style.opacity      = opacity;
+          scanlines.style.opacity = opacity;
+          glow.style.opacity      = opacity;
         }
       }
 
-      // ── CRT SHUTDOWN — image squeezes to a line then dot ────────
+      function resetCRT() {
+        game.style.transform      = '';
+        game.style.filter         = '';
+        game.style.opacity        = '';
+        scanlines.style.transform = '';
+        scanlines.style.opacity   = '';
+        glow.style.transform      = '';
+        glow.style.opacity        = '';
+      }
+
+      function applyFilter() {
+        if (powered) frame.style.filter = 'brightness('+brightness/100+') contrast('+contrast/100+')';
+      }
+
+      // Animate a numeric value with easing
+      function anim(from, to, ms, ease, onVal, onDone) {
+        var start = Date.now();
+        function step() {
+          var t = Math.min(1, (Date.now() - start) / ms);
+          var e = ease === 'in'  ? t * t :
+                  ease === 'out' ? 1 - (1-t)*(1-t) :
+                  ease === 'cubic-out' ? 1 - Math.pow(1-t, 3) : t;
+          onVal(from + (to - from) * e);
+          if (t < 1) requestAnimationFrame(step);
+          else { onVal(to); onDone(); }
+        }
+        requestAnimationFrame(step);
+      }
+
+      // ── SHUTDOWN ─────────────────────────────────────────────────
       function crtShutdown(cb) {
         crtAnimating = true;
-        crtOverlay.style.display = 'block';
-        crtOverlay.style.background = 'transparent';
-
-        var game = frame.querySelector('.game');
-
-        // Stage 1: flicker (80ms), then rapid horizontal squeeze + white line
         var t = 0;
-        var flicker = setInterval(function() {
-          game.style.opacity = (t % 2 === 0) ? '0.6' : '1';
+        var fl = setInterval(function() {
+          game.style.opacity = t % 2 === 0 ? '0.15' : '1';
           t++;
-          if (t >= 6) {
-            clearInterval(flicker);
+          if (t >= 8) {
+            clearInterval(fl);
             game.style.opacity = '1';
-            // Stage 2: squeeze vertically to thin line (180ms)
-            game.style.transition = 'transform 0.18s ease-in, opacity 0.18s ease-in, filter 0.18s ease-in';
-            game.style.transform  = 'scaleY(0.04)';
-            game.style.filter     = 'brightness(3) saturate(0)';
-            game.style.opacity    = '1';
+            game.style.transition = 'filter 0.06s ease-out';
+            game.style.filter = 'brightness(4) saturate(0)';
             setTimeout(function() {
-              // Stage 3: squeeze horizontally + fade (120ms)
-              game.style.transition = 'transform 0.12s ease-in, opacity 0.12s ease-in';
-              game.style.transform  = 'scaleY(0.04) scaleX(0.0)';
-              game.style.opacity    = '0';
-              setTimeout(function() {
-                game.style.transition = '';
-                game.style.transform  = '';
-                game.style.filter     = '';
-                game.style.opacity    = '0'; // keep hidden
-                frame.style.filter    = 'brightness(0)';
-                crtOverlay.style.display = 'none';
-                crtAnimating = false;
-                if (cb) cb();
-              }, 130);
-            }, 190);
+              game.style.transition = '';
+              // Stage 3: squeeze vertically
+              anim(1.0, 0.0, 230, 'in',
+                function(v) { setCRT(Math.max(0.008, v), 1, 1+(1-v)*3, v, null); },
+                function() {
+                  // Stage 4: collapse horizontally
+                  anim(1.0, 0.0, 160, 'in',
+                    function(v) { setCRT(0.008, Math.max(0, v), 4, 0, null); },
+                    function() {
+                      // screen off — hide everything, no transform snap
+                      setCRT(0.008, 0, 1, 1, '0');
+                      crtAnimating = false;
+                      if (cb) cb();
+                    }
+                  );
+                }
+              );
+            }, 70);
           }
-        }, 45);
+        }, 55);
       }
 
-      // ── CRT WARMUP — phosphor charges from centre out ───────────
+      // ── WARMUP ───────────────────────────────────────────────────
       function crtWarmup(cb) {
         crtAnimating = true;
-        var game = frame.querySelector('.game');
-        game.style.opacity = '0';
-        game.style.transform = 'scaleY(0.02) scaleX(0.0)';
-        game.style.filter = 'brightness(4) saturate(0)';
-        frame.style.filter = 'brightness('+brightness/100+') contrast('+contrast/100+')';
+        setCRT(0.008, 0, 4, 0, '1');
 
-        // Stage 1: horizontal expand from dot to thin white line (200ms)
         setTimeout(function() {
-          game.style.transition = 'transform 0.2s ease-out, opacity 0.1s ease-out';
-          game.style.transform  = 'scaleY(0.02) scaleX(1)';
-          game.style.opacity    = '1';
-
-          setTimeout(function() {
-            // Stage 2: vertical expand — slow, like phosphor heating up (600ms)
-            game.style.transition = 'transform 0.65s cubic-bezier(0.22,1,0.36,1), filter 1.2s ease-out, opacity 0.3s ease';
-            game.style.transform  = 'scaleY(1) scaleX(1)';
-            game.style.filter     = 'brightness(1.8) saturate(0.2)';
-
-            setTimeout(function() {
-              // Stage 3: colour desaturation clears as phosphor warms (800ms)
-              game.style.transition = 'filter 0.9s ease-out';
-              game.style.filter     = 'brightness(1) saturate(1)';
-              setTimeout(function() {
-                game.style.transition = '';
-                game.style.filter     = '';
-                crtAnimating = false;
-                if (cb) cb();
-              }, 950);
-            }, 680);
-          }, 220);
-        }, 60);
+          // Stage 1: expand horizontally
+          anim(0.0, 1.0, 220, 'out',
+            function(v) { setCRT(0.008, v, 4, 0, null); },
+            function() {
+              // Stage 2: expand vertically
+              anim(0.008, 1.0, 700, 'cubic-out',
+                function(v) {
+                  var sat = (v - 0.008) / (1.0 - 0.008);
+                  setCRT(v, 1, 1+(1-sat)*2, sat, null);
+                },
+                function() {
+                  // Stage 3: colour normalises
+                  game.style.transition = 'filter 0.9s ease-out';
+                  game.style.filter = 'brightness(1) saturate(1)';
+                  setTimeout(function() {
+                    game.style.transition = '';
+                    game.style.filter     = '';
+                    resetCRT();
+                    crtAnimating = false;
+                    if (cb) cb();
+                  }, 950);
+                }
+              );
+            }
+          );
+        }, 40);
       }
 
-      // ── Power button click ───────────────────────────────────────
+      // ── Power button ─────────────────────────────────────────────
       powerBtn.addEventListener('click', function() {
         if (crtAnimating) return;
 
         if (powered) {
-          // --- TURNING OFF ---
           powered = false;
           powerBtn.classList.add('off');
           ledPower.classList.add('led-off');
-
-          // Sound
+          // Fade dial markers out
+          document.querySelectorAll('.dial-marker').forEach(function(d){ d.style.opacity='0'; });
           if (window._SE) window._SE.powerOff();
-
-          // Pause game + mute audio
+          var cur = window._getCurrentScreen ? window._getCurrentScreen() : null;
+          if (cur === 'boot') sessionStorage.setItem('vault84_boot_interrupted', '1');
           if (window._pauseGame) window._pauseGame();
-
-          // Stop CSS flicker animation on game content
-          var gameEl = frame.querySelector('.game');
-          if (gameEl) {
-            gameEl.style.animationPlayState = 'paused';
-            var piece = gameEl.querySelector('.piece');
-            if (piece) piece.style.animationPlayState = 'paused';
-          }
-          // Hide scanlines, glow and their animations completely — no ghost lines
-          var scanlines = frame.querySelector('.scanlines');
-          var glow = frame.querySelector('.glow');
-          if (scanlines) { scanlines.style.opacity = '0'; scanlines.style.animationPlayState = 'paused'; }
-          if (glow)      { glow.style.opacity = '0';      glow.style.animationPlayState = 'paused'; }
-
-          // Mute audio
-          var gameDiv = document.querySelector('.game');
-          if (gameDiv) gameDiv.dispatchEvent(new CustomEvent('vault84:mute'));
-
-          // CRT shutdown animation
-          crtShutdown(function() { /* screen stays black */ });
+          var gd = frame.querySelector('.game');
+          if (gd) gd.dispatchEvent(new CustomEvent('vault84:mute'));
+          crtShutdown(function(){});
 
         } else {
-          // --- TURNING ON ---
           powered = true;
           powerBtn.classList.remove('off');
           ledPower.classList.remove('led-off');
-
-          // Sound
+          // Fade dial markers back in
+          document.querySelectorAll('.dial-marker').forEach(function(d){ d.style.opacity='1'; });
           if (window._SE) window._SE.powerOn();
-
-          // Resume game + animations
           if (window._resumeGame) window._resumeGame();
-
-          // Resume CSS flicker animations
-          var gameEl = frame.querySelector('.game');
-          if (gameEl) {
-            gameEl.style.animationPlayState = 'running';
-            var piece = gameEl.querySelector('.piece');
-            if (piece) piece.style.animationPlayState = 'running';
-          }
-          // Restore scanlines and glow
-          var scanlines = frame.querySelector('.scanlines');
-          var glow = frame.querySelector('.glow');
-          if (scanlines) { scanlines.style.opacity = ''; scanlines.style.animationPlayState = 'running'; }
-          if (glow)      { glow.style.opacity = '';      glow.style.animationPlayState = 'running'; }
-
-          // Unmute audio
-          var game = document.querySelector('.game');
-          if (game) game.dispatchEvent(new CustomEvent('vault84:unmute'));
-
-          // CRT warmup animation
-          var g = frame.querySelector('.game');
-          g.style.opacity = '0';
-          crtWarmup(function() { /* game is fully visible */ });
+          var gd = frame.querySelector('.game');
+          if (gd) gd.dispatchEvent(new CustomEvent('vault84:unmute'));
+          crtWarmup(function(){});
         }
       });
 
+      // ── Dials ────────────────────────────────────────────────────
       function makeDial(el, cb) {
-        var drag = false, sy = 0, sa = 0, angle = 0;
+        var drag=false, sy=0, sa=0, angle=0;
         function set(a) {
           angle = Math.max(-130, Math.min(130, a));
           el.style.transform = 'rotate('+angle+'deg)';
-          cb((angle + 130) / 260);
+          cb((angle+130)/260);
         }
-        el.addEventListener('mousedown', function(e) { drag=true; sy=e.clientY; sa=angle; e.preventDefault(); document.body.style.cursor='ns-resize'; });
-        window.addEventListener('mousemove', function(e) { if(drag) set(sa+(sy-e.clientY)*1.4); });
-        window.addEventListener('mouseup',   function()  { drag=false; document.body.style.cursor=''; });
-        el.addEventListener('touchstart', function(e) { drag=true; sy=e.touches[0].clientY; sa=angle; e.preventDefault(); }, {passive:false});
-        window.addEventListener('touchmove', function(e) { if(drag) set(sa+(sy-e.touches[0].clientY)*1.4); });
-        window.addEventListener('touchend',  function()  { drag=false; });
+        el.addEventListener('mousedown', function(e){ drag=true; sy=e.clientY; sa=angle; e.preventDefault(); document.body.style.cursor='ns-resize'; });
+        window.addEventListener('mousemove', function(e){ if(drag) set(sa+(sy-e.clientY)*1.4); });
+        window.addEventListener('mouseup', function(){ drag=false; document.body.style.cursor=''; });
+        el.addEventListener('touchstart', function(e){ drag=true; sy=e.touches[0].clientY; sa=angle; e.preventDefault(); },{passive:false});
+        window.addEventListener('touchmove', function(e){ if(drag) set(sa+(sy-e.touches[0].clientY)*1.4); });
+        window.addEventListener('touchend', function(){ drag=false; });
         set(0);
       }
+      makeDial(dialBri, function(t){ brightness=40+t*100; applyFilter(); });
+      makeDial(dialCon, function(t){ contrast=60+t*80; applyFilter(); });
 
-      makeDial(dialBri, function(t) { brightness = 40 + t*100; applyFilter(); });
-      makeDial(dialCon, function(t) { contrast   = 60 + t*80;  applyFilter(); });
-
+      // ── LEDs ─────────────────────────────────────────────────────
       var diskTimer;
       new MutationObserver(function() {
         if (!powered) return;
         ledDisk.classList.add('led-active');
         clearTimeout(diskTimer);
-        diskTimer = setTimeout(function() { ledDisk.classList.remove('led-active'); }, 90);
+        diskTimer = setTimeout(function(){ ledDisk.classList.remove('led-active'); }, 90);
       }).observe(document.body, { childList:true, subtree:true, characterData:true });
 
       function netPulse() {
         if (powered) { ledNet.classList.add('led-active'); setTimeout(function(){ ledNet.classList.remove('led-active'); }, 140); }
-        setTimeout(netPulse, 2800 + Math.random()*5000);
+        setTimeout(netPulse, 2800+Math.random()*5000);
       }
       setTimeout(netPulse, 1500);
     });

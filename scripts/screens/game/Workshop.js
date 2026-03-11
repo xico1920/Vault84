@@ -5,12 +5,22 @@ import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 export function createWorkshopScreen() {
     let viewer3d=null, tickFn=null;
     const cfg={
-        reactor:  {label:'REACTOR CORE',    desc:'Increases power output multiplier',  effect:()=>{GameState.reactor.upgradeLevel++;}},
-        mining:   {label:'MINING SHAFT',    desc:'Increases auto-mine yield per tick',  effect:()=>{GameState.mining.autoRate+=0.5;GameState.mining.upgradeLevel++;}},
-        refinery: {label:'ORE REFINERY',    desc:'Increases ore refine rate',           effect:()=>{GameState.refinery.refineRate+=0.2;GameState.refinery.upgradeLevel++;}},
-        water:    {label:'WATER TREATMENT', desc:'Increases cooling flow rate',          effect:()=>{GameState.water.upgradeLevel++;}},
-        ssm:      {label:'SMART STORAGE',   desc:'Improves base ore sell prices',       effect:()=>{GameState.ssm.rawOrePrice+=0.5;GameState.ssm.refinedOrePrice+=1;GameState.ssm.upgradeLevel++;}},
-        security: {label:'SECURITY',        desc:'Reduces threat spawn interval',       effect:()=>{GameState.security.threatInterval=Math.max(30,GameState.security.threatInterval-15);GameState.security.level++;}},
+        reactor:  {label:'REACTOR CORE',    desc:'Increases power output multiplier',  effect:()=>{GameState.reactor.upgradeLevel++; GameState.addLog(`Reactor upgraded to LVL ${GameState.reactor.upgradeLevel} — heat load increased`, 'ok');}},
+        mining:   {label:'MINING SHAFT',    desc:'Increases auto-mine yield per tick',  effect:()=>{GameState.mining.autoRate+=0.5;GameState.mining.upgradeLevel++; GameState.addLog(`Mining upgraded — yield +0.5/tick`, 'ok');}},
+        refinery: {label:'ORE REFINERY',    desc:'Increases ore refine rate',           effect:()=>{GameState.refinery.refineRate+=0.2;GameState.refinery.upgradeLevel++; GameState.addLog(`Refinery upgraded — refine rate +0.2`, 'ok');}},
+        water:    {label:'WATER TREATMENT', desc:'Increases cooling flow rate',          effect:()=>{GameState.water.upgradeLevel++; GameState.addLog(`Water pump upgraded — cooling capacity +8`, 'ok');}},
+        ssm:      {label:'SMART STORAGE',   desc:'Increases ore storage cap + sell prices', effect:()=>{
+            GameState.ssm.rawOrePrice+=0.5; GameState.ssm.refinedOrePrice+=1; GameState.ssm.upgradeLevel++;
+            GameState.mining.storageMax   += 30;  // each SSM upgrade adds 30 raw ore slots
+            GameState.refinery.storageMax += 20;  // and 20 refined slots
+            GameState.addLog(`SSM upgraded — storage +30 raw / +20 refined`, 'ok');
+        }},
+        security: {label:'SECURITY',        desc:'Reduces threat interval, better sensors', effect:()=>{
+            GameState.security.threatInterval=Math.max(30,GameState.security.threatInterval-15);
+            GameState.security.level++;
+            GameState.security.perimeter.motionInterval = Math.min(300, GameState.security.perimeter.motionInterval + 20);
+            GameState.addLog(`Security upgraded — threat interval reduced`, 'ok');
+        }},
     };
     const cost=key=>Math.floor(GameState.workshop.upgrades[key].cost*Math.pow(1.6,GameState.workshop.upgrades[key].level-1));
 

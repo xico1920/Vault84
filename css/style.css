@@ -246,7 +246,7 @@ a:hover, a:focus, a:active {
   align-items: stretch;
   background: var(--surface);
   border-bottom: 1px solid var(--muted);
-  padding: 0 1rem;
+  padding: 0;
   flex-shrink: 0;
 }
 
@@ -255,6 +255,10 @@ a:hover, a:focus, a:active {
   list-style: none;
   gap: 0;
   flex-wrap: wrap;
+}
+
+.nav-list li {
+  position: relative;
 }
 
 .nav-list li a {
@@ -584,6 +588,7 @@ input[type="range"] { accent-color: var(--hi); }
   margin: 1.2% 2% 0 2%;
   border-radius: 1.4rem;
   min-height: 0;
+  overflow: hidden !important;
 }
 
 /* ── Control panel strip ────────────────────────────────────── */
@@ -745,6 +750,7 @@ input[type="range"] { accent-color: var(--hi); }
   background: #14fdce;
   border-radius: 1px;
   box-shadow: 0 0 4px rgba(20,253,206,0.6);
+  transition: opacity 0.8s ease, box-shadow 0.8s ease;
 }
 .dial-label {
   font-family: 'VT323', monospace;
@@ -952,4 +958,189 @@ input[type="range"] { accent-color: var(--hi); }
   position: absolute; top: 34%; left: 0; right: 0; height: 1px;
   background: linear-gradient(to right, transparent, rgba(150,130,70,0.22) 20%, rgba(150,130,70,0.22) 80%, transparent);
   pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAV BADGES — state indicators on nav links
+═══════════════════════════════════════════════════════════════ */
+.nav-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  font-size: 0px;
+  z-index: 10;
+}
+.nav-dot-crit    { background: #ff2222; box-shadow: 0 0 6px #ff2222; }
+.nav-dot-warn    { background: #ff8800; box-shadow: 0 0 6px #ff8800; }
+.nav-dot-offline { background: #555;    box-shadow: 0 0 4px #333; }
+.nav-badge-pulse { animation: badgePulse 0.7s ease-in-out infinite alternate; }
+@keyframes badgePulse {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0.3; transform: scale(0.6); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HUD TEMPERATURE BAR
+═══════════════════════════════════════════════════════════════ */
+.hud-temp-item { flex-direction: column; align-items: flex-start; gap: 1px; }
+.hud-temp-val  { font-size: 1rem; }
+.hud-temp-bar-wrap {
+  width: 60px; height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px; overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  position: relative;
+  top: -1px;
+}
+.hud-temp-bar {
+  display: block; height: 100%; width: 40%;
+  background: #14fdce;
+  transition: width 0.5s ease, background 0.5s ease;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EVENT LOG BAR — bottom terminal strip, minimizable
+═══════════════════════════════════════════════════════════════ */
+.event-log-bar {
+  flex-shrink: 0;
+  background: rgba(2, 15, 7, 0.97);
+  border-top: 1px solid #0d3a20;
+  z-index: 5;
+  font-family: 'VT323', monospace;
+  transition: height 0.22s cubic-bezier(0.4,0,0.2,1);
+  height: 92px;
+  overflow: hidden;
+}
+.event-log-bar.log-minimized {
+  height: 22px;
+}
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: #2a7a55;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  border-bottom: 1px solid #0d3a20;
+  cursor: pointer;
+  user-select: none;
+  height: 22px;
+  box-sizing: border-box;
+}
+.log-header:hover { color: #5ecba8; }
+.log-header-label { flex: 1; }
+.log-toggle-arrow {
+  font-size: 0.65rem;
+  color: #2a7a55;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.log-minimized .log-toggle-arrow { transform: rotate(180deg); }
+
+/* Unread dot */
+.log-unread-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #ff8800;
+  box-shadow: 0 0 5px #ff8800;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  animation: logDotPulse 0.8s ease-in-out infinite alternate;
+}
+.log-unread-dot.visible { opacity: 1; }
+@keyframes logDotPulse {
+  from { opacity: 1; box-shadow: 0 0 5px #ff8800; }
+  to   { opacity: 0.3; box-shadow: 0 0 2px #ff8800; }
+}
+/* Crit dot — red */
+.log-unread-dot.dot-crit {
+  background: #ff2222;
+  box-shadow: 0 0 5px #ff2222;
+  animation: logDotPulseCrit 0.5s ease-in-out infinite alternate;
+}
+@keyframes logDotPulseCrit {
+  from { opacity: 1; box-shadow: 0 0 8px #ff2222; }
+  to   { opacity: 0.2; box-shadow: 0 0 2px #ff2222; }
+}
+
+.log-body {
+  padding: 3px 10px 4px 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+.log-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.log-line {
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.log-ts {
+  color: #2a7a55;
+  margin-right: 8px;
+  font-size: 0.72rem;
+}
+
+/* padding-bottom no longer needed — log is in normal flow */
+
+/* ═══════════════════════════════════════════════════════════════
+   PERIMETER SENSOR ZONES
+═══════════════════════════════════════════════════════════════ */
+.sensor-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border: 1px solid #0d3a20;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.3);
+  font-family: 'VT323', monospace;
+  color: #2a7a55;
+  letter-spacing: 1px;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: default;
+}
+.sensor-zone.sensor-alert {
+  border-color: #ff8800;
+  background: rgba(255,136,0,0.08);
+  color: #ff8800;
+  animation: sensorAlert 0.5s ease-in-out infinite alternate;
+}
+@keyframes sensorAlert {
+  from { box-shadow: 0 0 0 transparent; }
+  to   { box-shadow: 0 0 8px rgba(255,136,0,0.4); }
+}
+.sensor-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1a4a2e;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.sensor-alert .sensor-dot {
+  background: #ff8800;
+  box-shadow: 0 0 6px #ff8800;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THREAT ROWS — coloured border by type
+═══════════════════════════════════════════════════════════════ */
+.threat-row { border-radius: 3px; }
+
+/* HUD sec pulse */
+@keyframes hudSecPulse {
+  from { opacity: 1; }
+  to   { opacity: 0.4; }
 }

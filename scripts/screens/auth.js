@@ -37,7 +37,7 @@ export function createAuthScreen(manager, USERNAME_KEY) {
         async render() {
             // HTML do ecrã de autenticação
             manager.root.innerHTML = `
-                <div class="piece output items-center justify-center">
+                <div class="piece output" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
                     <h1>AUTHENTICATION</h1>
                     <p>Please register your terminal designation.</p>
                     <input type="text" id="username-input" class="terminal-input" maxlength="20" autofocus>
