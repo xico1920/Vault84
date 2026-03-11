@@ -1,95 +1,93 @@
-// scripts/screens/game/ReactorCore.js
-// ReactorCore atualizado com fix para redimensionamento
-
+import { SE } from '../../core/SoundEngine.js';
 import { ModelViewer } from '../../core/ModelViewer.js';
+import { GameState }   from '../../core/GameState.js';
+import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 
 export function createReactorCoreScreen() {
-    let modelViewer = null;
-    const canvasId = 'reactorCanvas';
+    let viewer3d = null, tickFn = null;
+
+    const tColor = t => t <= 800 ? '#14fdce' : t <= 1000 ? '#d4e800' : t <= 1300 ? '#ff8800' : '#ff2222';
+    const sColor = s => ({ ONLINE:'#14fdce', WARNING:'#ff8800', CRITICAL:'#ff2222', OFFLINE:'#3d9970' })[s] || '#14fdce';
+    const effBar = e => { const p=Math.round(e*100), n=Math.round(p/5); return `[${'|'.repeat(n)}${'.'.repeat(20-n)}] ${p}%`; };
+
+    function upd() {
+        const r = GameState.reactor, $ = id => document.getElementById(id);
+        const s=$('rc-status'); if(s){s.textContent=r.status;s.style.color=sColor(r.status);}
+        const p=$('rc-power');  if(p){p.textContent=`${(r.powerGW*r.efficiency).toFixed(2)} GW`;p.style.color=r.efficiency>0.6?'#14fdce':'#ff8800';}
+        const t=$('rc-temp');   if(t){t.textContent=`${r.temperature}C`;t.style.color=tColor(r.temperature);}
+        const e=$('rc-eff');    if(e){e.textContent=effBar(r.efficiency);e.style.color=r.efficiency>0.7?'#14fdce':r.efficiency>0.3?'#ff8800':'#ff2222';}
+        const b=$('rc-tbar');   if(b){b.style.width=`${Math.min(100,(r.temperature/1800)*100)}%`;b.style.background=tColor(r.temperature);}
+        const tog=$('rc-toggle'); if(tog){tog.textContent=r.online?'SHUT DOWN':'START REACTOR';tog.className=`btn ${r.online?'btn-danger':''}`;};
+        ['low','regular','optimal'].forEach(m=>{const btn=$(`rc-c-${m}`);if(btn){btn.style.background=r.coolantFlow===m?'#14fdce':'transparent';btn.style.color=r.coolantFlow===m?'#020f07':'#14fdce';}});
+    }
 
     return {
         async render() {
+            const r = GameState.reactor;
             return `
-                <div class="reactor-core-container grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    <!-- Info do Reactor -->
-                    <div class="reactor-content col-span-1 lg:col-span-8 order-2 lg:order-1">
-                        <h1>REACTOR CORE</h1>
-                        <p>STATUS: <span style="color: #14fdce;">ONLINE</span></p>
-                        <p>POWER OUTPUT: <span style="color: #14fdce;">2.4 GW</span></p>
-                        <p>CORE TEMPERATURE: <span style="color: #14fdce;">850°C</span></p>
-                        <p>COOLANT FLOW: <span style="color: #14fdce;">NOMINAL</span></p>
-                        <p>RADIATION LEVELS: <span style="color: #14fdce;">SAFE</span></p>
-                    </div>
+            <div class="dept-layout">
+              <div class="dept-main">
+                <h1>REACTOR CORE</h1>
+                <h2>VOLTEC MODEL VII FISSION UNIT</h2>
 
-                    <!-- Canvas 3D do Reactor + Controlos -->
-                    <div class="col-span-1 lg:col-span-4 order-1 lg:order-2">
-                        <!-- Modelo 3D -->
-                        <div style="border: 2px solid #14fdce; border-radius: 8px; padding: 10px; background: rgba(3, 30, 17, 0.8);">
-                            <canvas id="${canvasId}" style="width: 100%; height: 250px; display: block; border-radius: 4px;"></canvas>
-                        </div>
-                        
-                        <!-- Controlos -->
-                        <div class="mt-3">
-                            <button id="toggleWireframe" style="background: transparent; border: 1px solid #14fdce; color: #14fdce; padding: 8px 16px; border-radius: 4px; cursor: pointer; width: 100%; font-family: 'VT323', monospace;">
-                                TOGGLE WIREFRAME
-                            </button>
-                        </div>
-                        
-                        <!-- Info dos controlos -->
-                        <div class="mt-3 p-3" style="border: 1px solid #14fdce; border-radius: 6px; background: rgba(3, 30, 17, 0.3);">
-                            <p style="margin: 0 0 8px 0; text-align: center; color: #14fdce;"><strong>INTERACTION:</strong></p>
-                            <div class="text-sm">
-                                <p style="margin: 0 0 4px 0;">• <strong>Drag:</strong> Rotate reactor core</p>
-                                <p style="margin: 0 0 4px 0;">• <strong>Scroll:</strong> Zoom in/out</p>
-                                <p style="margin: 0;">• <strong>Idle:</strong> Auto-return (4s)</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="panel">
+                  <div class="panel-title">OPERATIONAL STATUS</div>
+                  <div class="stat-row"><span class="key">STATUS</span><span class="val" id="rc-status" style="color:${sColor(r.status)}">${r.status}</span></div>
+                  <div class="stat-row"><span class="key">POWER OUTPUT</span><span class="val" id="rc-power">${(r.powerGW*r.efficiency).toFixed(2)} GW</span></div>
                 </div>
-            `;
+
+                <div class="panel">
+                  <div class="panel-title">THERMAL MANAGEMENT</div>
+                  <div class="stat-row"><span class="key">CORE TEMPERATURE</span><span class="val" id="rc-temp" style="color:${tColor(r.temperature)}">${r.temperature}C</span></div>
+                  <div class="bar-track"><div class="bar-fill" id="rc-tbar" style="width:${Math.min(100,(r.temperature/1800)*100)}%;background:${tColor(r.temperature)};"></div></div>
+                  <div class="label" style="margin-bottom:0.6rem;">0C ──── 1000C [WARN] ──── 1500C [CRIT] ──── 1800C</div>
+                  <div class="stat-row"><span class="key">EFFICIENCY</span><span class="val" id="rc-eff" style="font-size:0.85rem;">${effBar(r.efficiency)}</span></div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-title">COOLANT FLOW</div>
+                  <div class="btn-group" style="margin-bottom:0.4rem;">
+                    <button id="rc-c-low"     class="btn btn-sm" style="background:${r.coolantFlow==='low'?'#14fdce':'transparent'};color:${r.coolantFlow==='low'?'#020f07':'#14fdce'};">LOW</button>
+                    <button id="rc-c-regular" class="btn btn-sm" style="background:${r.coolantFlow==='regular'?'#14fdce':'transparent'};color:${r.coolantFlow==='regular'?'#020f07':'#14fdce'};">REGULAR</button>
+                    <button id="rc-c-optimal" class="btn btn-sm" style="background:${r.coolantFlow==='optimal'?'#14fdce':'transparent'};color:${r.coolantFlow==='optimal'?'#020f07':'#14fdce'};">OPTIMAL</button>
+                  </div>
+                  <div class="label">LOW = max heat buildup &nbsp;|&nbsp; OPTIMAL = max cooling (req. water pump)</div>
+                </div>
+
+                <button id="rc-toggle" class="btn ${r.online?'btn-danger':''}" style="width:100%;max-width:260px;margin-top:0.5rem;padding:8px;font-size:1.1rem;letter-spacing:3px;">
+                  ${r.online?'SHUT DOWN':'START REACTOR'}
+                </button>
+              </div>
+
+              <div class="dept-sidebar">
+                ${dept3DPanel('canvas-reactor','REACTOR CORE')}
+                <div class="panel mini-stats">
+                  <div class="panel-title">SPECS</div>
+                  <p>MODEL<span>VOLTEC VII</span></p>
+                  <p>OUTPUT<span>${r.powerGW} GW NOMINAL</span></p>
+                  <p>COOLING<span>${r.coolantFlow.toUpperCase()}</span></p>
+                  <p>LEVEL<span>${r.upgradeLevel}</span></p>
+                </div>
+              </div>
+            </div>`;
         },
 
         async onRendered() {
-            modelViewer = new ModelViewer();
-            
-            // Usar requestAnimationFrame para garantir que o DOM está totalmente renderizado
-            requestAnimationFrame(async () => {
-                try {
-                    const modelPath = 'assets/3D/reactorcore.glb';
-                    
-                    await modelViewer.initViewer(canvasId, modelPath, {
-                        fov: 60,
-                        cameraX: 0,
-                        cameraY: 0,
-                        cameraZ: window.innerWidth < 768 ? 5 : 4, // Mais longe em mobile
-                        
-                        // Animação pulsante suave
-                        customAnimation: (model, scene) => {
-                            const time = Date.now() * 0.001;
-                            const pulse = 1.0 + Math.sin(time * 2) * 0.03;
-                            model.scale.setScalar(pulse);
-                        }
-                    });
+            document.getElementById('rc-toggle')?.addEventListener('click', () => { GameState.reactor.online = !GameState.reactor.online; GameState.reactor.online ? SE.reactorOnline() : SE.error(); upd(); });
+            ['low','regular','optimal'].forEach(m => document.getElementById(`rc-c-${m}`)?.addEventListener('click', () => { GameState.reactor.coolantFlow = m; upd(); }));
 
-                    // Event listener para o botão wireframe
-                    document.getElementById('toggleWireframe')?.addEventListener('click', () => {
-                        modelViewer.toggleWireframe(canvasId);
-                    });
+            tickFn = () => upd();
+            GameState.on('tick', tickFn);
 
-                    // O ResizeObserver agora é gerido internamente pelo ModelViewer
-                    // Não precisamos mais de código adicional aqui
-
-                } catch (error) {
-                    console.error('Erro ao inicializar o modelo 3D:', error);
-                }
+            viewer3d = mountDeptModel('canvas-reactor', 'reactorcore', {
+                cz: 3.2,
+                animate: (model, _, t) => { model.children[0] && (model.children[0].rotation.y = t * 0.0008); }
             });
         },
 
         onExit() {
-            if (modelViewer) {
-                modelViewer.dispose(canvasId);
-                modelViewer = null;
-            }
+            if (tickFn && GameState._listeners['tick']) GameState._listeners['tick'] = GameState._listeners['tick'].filter(f => f !== tickFn);
+            viewer3d?.dispose();
         }
     };
 }

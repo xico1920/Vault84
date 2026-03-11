@@ -1,56 +1,117 @@
+import { GameState } from '../../core/GameState.js';
+import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
+
 export function createStatusScreen() {
+    let viewer3d=null, tickFn=null;
+
+    const dot=(on,warn=false)=>`<span class="dot ${on?(warn?'dot-warn':'dot-ok'):'dot-off'}"></span>`;
+
+    function upd() {
+        const r=GameState.reactor,m=GameState.mining,ref=GameState.refinery,w=GameState.water,sec=GameState.security,$=id=>document.getElementById(id);
+        const ca=$('st-cash'); if(ca)ca.textContent=GameState.formatCash(GameState.cash);
+        const pb=$('st-pbar'); if(pb){pb.style.width=`${r.efficiency*100}%`;pb.style.background=r.efficiency>0.6?'#14fdce':r.efficiency>0.3?'#ff8800':'#ff2222';}
+        const pw=$('st-pw');   if(pw)pw.textContent=`${(r.powerGW*r.efficiency).toFixed(2)} GW`;
+
+        const rstat=$('st-rs');if(rstat){rstat.innerHTML=`${dot(r.online,r.temperature>800)} ${r.status}`;rstat.style.color=r.efficiency>0.5?'#14fdce':'#ff8800';}
+        const rtemp=$('st-rt');if(rtemp){rtemp.textContent=`${r.temperature}C`;rtemp.style.color=r.temperature>1000?'#ff2222':r.temperature>800?'#ff8800':'#3d9970';}
+
+        const mst=$('st-ms');if(mst){const on=m.online&&r.efficiency>0;mst.innerHTML=`${dot(on)} ${on?'ACTIVE':'OFFLINE'}`;}
+        const mr=$('st-mr'); if(mr)mr.textContent=`${m.ratePerTick.toFixed(2)}/s`;
+        const mw=$('st-mw'); if(mw)mw.textContent=Math.floor(m.rawOres);
+
+        const rfst=$('st-rfs');if(rfst){const on=ref.online&&ref.efficiency>0;rfst.innerHTML=`${dot(on)} ${on?'OPERATIONAL':'OFFLINE'}`;}
+        const rfr=$('st-rfr'); if(rfr)rfr.textContent=Math.floor(ref.refinedOres);
+
+        const wst=$('st-ws'); if(wst){wst.innerHTML=`${dot(w.pumpOnline)} ${w.pumpOnline?'ONLINE':'OFFLINE'}`;}
+
+        const sc=$('st-sc');  if(sc){sc.textContent=sec.threats.length;sc.style.color=sec.threats.length>0?'#ff2222':'#14fdce';}
+
+        // Alerts
+        const alerts=[];
+        if(r.temperature>1000) alerts.push({msg:`REACTOR TEMP ${r.temperature}C -- CRITICAL`,c:'#ff2222'});
+        if(!w.pumpOnline)      alerts.push({msg:'WATER PUMP OFFLINE',c:'#ff2222'});
+        if(sec.threats.length) alerts.push({msg:`${sec.threats.length} SECURITY THREAT(S) ACTIVE`,c:'#ff8800'});
+        if(!r.online)          alerts.push({msg:'REACTOR OFFLINE -- ALL SYSTEMS DEGRADED',c:'#ff2222'});
+
+        const ae=$('st-alerts');
+        if(ae) ae.innerHTML=alerts.length
+            ? alerts.map(a=>`<div style="color:${a.c};margin-bottom:3px;">>> ${a.msg}</div>`).join('')
+            : `<div class="label">-- ALL SYSTEMS NOMINAL --</div>`;
+    }
+
     return {
         async render() {
+            const r=GameState.reactor,m=GameState.mining,ref=GameState.refinery,w=GameState.water,sec=GameState.security;
+            const dot2=(on,warn=false)=>`<span class="dot ${on?(warn?'dot-warn':'dot-ok'):'dot-off'}"></span>`;
             return `
-                <div class="grid grid-cols-12 gap-4">
-                    <div class="col-span-12 md:col-span-9">
-                        <h1>STATUS</h1>
-                        <p>CASH: 1$</p>
-                        <p>MINING STATUS: OFFLINE</p>
-                        <p>WATER EXTRACTION: OFFLINE</p>
-                        <p>WAREHOUSE: EMPTY</p>
-                    </div>
-                    <div class="col-span-12 md:col-span-3">
-                        <div class="resources">
-                            <p class="inline-flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-                                </svg>POWER: 100 W
-                            </p>    
-                            <p class="inline-flex items-center disabled">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5" />
-                                </svg>AIR QUALITY: NONE
-                            </p>
-                            <p class="inline-flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-                                </svg>WATER: 10/100L
-                            </p>
-                            <p class="inline-flex items-center disabled">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-                                </svg>MORALE: NONE
-                            </p>
-                            <p class="inline-flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                                </svg>SANITY: 100%
-                            </p>
-                            <p class="inline-flex items-center disabled">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                                </svg>COMPLIANCE: NONE
-                            </p>
-                            <p class="inline-flex items-center disabled">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-5 mr-2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                </svg>DATA: NONE
-                            </p>
-                        </div>
-                    </div>
+            <div class="dept-layout">
+              <div class="dept-main">
+                <h1>STATUS</h1>
+                <h2>VAULT 84 OPERATIONS OVERVIEW</h2>
+
+                <div class="panel">
+                  <div class="panel-title">TREASURY</div>
+                  <div style="font-size:2.2rem;color:#14fdce;" id="st-cash">${GameState.formatCash(GameState.cash)}</div>
                 </div>
-            `;
+
+                <div class="panel">
+                  <div class="panel-title">POWER GRID</div>
+                  <div class="bar-track"><div class="bar-fill" id="st-pbar" style="width:${r.efficiency*100}%;"></div></div>
+                  <div class="stat-row"><span class="key">OUTPUT</span><span class="val" id="st-pw">${(r.powerGW*r.efficiency).toFixed(2)} GW</span></div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.6rem;">
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">REACTOR</div>
+                    <div id="st-rs">${dot2(r.online)} ${r.status}</div>
+                    <div class="label">TEMP: <span id="st-rt">${r.temperature}C</span></div>
+                  </div>
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">MINING</div>
+                    <div id="st-ms">${dot2(m.online&&r.efficiency>0)} ${m.online&&r.efficiency>0?'ACTIVE':'OFFLINE'}</div>
+                    <div class="label"><span id="st-mr">${m.ratePerTick.toFixed(2)}/s</span> | RAW: <span id="st-mw">${Math.floor(m.rawOres)}</span></div>
+                  </div>
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">REFINERY</div>
+                    <div id="st-rfs">${dot2(ref.online&&ref.efficiency>0)} ${ref.online&&ref.efficiency>0?'OPERATIONAL':'OFFLINE'}</div>
+                    <div class="label">REFINED: <span id="st-rfr">${Math.floor(ref.refinedOres)}</span></div>
+                  </div>
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">WATER</div>
+                    <div id="st-ws">${dot2(w.pumpOnline)} ${w.pumpOnline?'ONLINE':'OFFLINE'}</div>
+                  </div>
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">SECURITY</div>
+                    <div>THREATS: <span id="st-sc" style="color:${sec.threats.length?'#ff2222':'#14fdce'}">${sec.threats.length}</span></div>
+                  </div>
+                  <div class="panel" style="margin:0;">
+                    <div class="panel-title">SSM</div>
+                    <div>AUTO-SELL: <span style="color:${GameState.ssm.autoSell?'#14fdce':'#3d9970'}">${GameState.ssm.autoSell?'ON':'OFF'}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dept-sidebar">
+                ${dept3DPanel('canvas-status','VAULT 84')}
+                <div class="panel">
+                  <div class="panel-title">ALERTS</div>
+                  <div id="st-alerts"><div class="label">-- ALL SYSTEMS NOMINAL --</div></div>
+                </div>
+              </div>
+            </div>`;
+        },
+
+        async onRendered() {
+            tickFn=()=>upd(); GameState.on('tick',tickFn);
+            viewer3d=mountDeptModel('canvas-status','status',{
+                cz:2.8,
+                animate:(model,_,t)=>{model.rotation.y=t*0.0004;}
+            });
+        },
+
+        onExit() {
+            if(tickFn&&GameState._listeners['tick'])GameState._listeners['tick']=GameState._listeners['tick'].filter(f=>f!==tickFn);
+            viewer3d?.dispose();
         }
     };
 }

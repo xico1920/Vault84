@@ -1,17 +1,18 @@
+import { showTutorialIfFirstTime } from '../core/TutorialOverlay.js';
 import { randomChar, sleep } from '../core/utils.js';
 
 export function createWelcomeScreen(manager) {
     return {
         async render(username) {
             manager.root.innerHTML = `
-                <div class="piece output items-center justify-center">
-                    <img src="assets/img/logo_voltec2.png" id="vaultLogo" alt="VOLTEC logo" class="logo" style="opacity: 0; transition: opacity 2s ease;">
-                    <p id="loadingText" class="mt-5"></p>
-                    <br>
-                    <p id="statusLine" class="mt-5">[Loading Environment]</p>
-                    <p id="copyright" class="mt-5">© 1977 VOLTECH SYSTEMS</p>
-                    <div id="dev-menu" style="position: absolute; bottom: 1rem; right: 1rem; border: 1px solid #14fdce; padding: 5px; opacity: 0.4;">
-                        <a href="#" id="skip-loader" class="terminal-link" style="border: none; font-size: 16px;">[Dev: Skip Loader]</a>
+                <div class="piece output" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2.5rem;">
+                    <img src="assets/img/logo_voltec2.png" id="vaultLogo" alt="VOLTEC logo"
+                         style="display:block!important;width:auto!important;max-width:200px!important;max-height:28vh!important;object-fit:contain;opacity:0;transition:opacity 2s ease;">
+                    <p id="loadingText" style="min-height:1.4rem;font-size:1rem;letter-spacing:2px;"></p>
+                    <p id="statusLine" style="color:#3d9970;font-size:0.85rem;">[Loading Environment]</p>
+                    <p id="copyright" style="color:#3d9970;font-size:0.82rem;letter-spacing:2px;">© 1977 VOLTECH SYSTEMS</p>
+                    <div id="dev-menu" style="position:absolute;bottom:1rem;right:1rem;opacity:0.3;">
+                        <a href="#" id="skip-loader" class="terminal-link" style="border:none;font-size:14px;">[Dev: Skip Loader]</a>
                     </div>
                 </div>
             `;
@@ -105,6 +106,7 @@ export function createWelcomeScreen(manager) {
                 loadingText.textContent = "";
                 statusLine.textContent = "";
                 copyright.textContent = originalText;
+                await showTutorialIfFirstTime(username);
                 manager.navigateTo('game', username);
             }
         },

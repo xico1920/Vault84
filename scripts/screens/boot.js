@@ -7,10 +7,10 @@ export function createBootScreen(manager) {
         async render(username) {
             // O HTML do boot-up screen
             manager.root.innerHTML = `
-                <div class="piece output" style="width: 100%; text-align: left;">
-                    <div id="boot-log"></div>
-                    <div id="dev-menu" style="position: absolute; bottom: 1rem; right: 1rem; border: 1px solid #14fdce; padding: 5px; opacity: 0.4;">
-                        <a href="#" id="skip-loader" class="terminal-link" style="border: none; font-size: 16px;">[Dev: Skip Loader]</a>
+                <div class="piece output" style="padding:2.5rem 2.5rem 2rem 2.5rem;text-align:left;overflow-y:auto;">
+                    <div id="boot-log" style="line-height:1.6;font-size:1rem;letter-spacing:0.5px;"></div>
+                    <div id="dev-menu" style="position:fixed;bottom:1.5rem;right:1.5rem;opacity:0.25;">
+                        <a href="#" id="skip-loader" class="terminal-link" style="border:none;font-size:13px;letter-spacing:1px;">[Skip]</a>
                     </div>
                 </div>
             `;

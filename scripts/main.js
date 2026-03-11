@@ -1,3 +1,18 @@
+import { SE } from './core/SoundEngine.js';
+import { pauseGameLoop, resumeGameLoop, isGamePaused } from './core/GameLoop.js';
+
+// Expose globally for the CRT controls (non-module script)
+window._SE = SE;
+window._pauseGame  = pauseGameLoop;
+window._resumeGame = resumeGameLoop;
+window._isGamePaused = isGamePaused;
+
+// Global click sound — fires on any button/link click
+document.addEventListener('click', function(e) {
+    const el = e.target.closest('button, a, .btn, .dial, .nav-list li');
+    if (el) SE.click(Math.floor(Math.random() * 4));
+}, true);
+
 // Imports, imports, imports!!!
 import { AudioManager } from './core/audioManager.js';
 import { ScreenManager } from './core/screenManager.js';
