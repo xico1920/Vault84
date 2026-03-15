@@ -2,11 +2,16 @@
 
 import { GameState } from './GameState.js';
 import { SE } from './SoundEngine.js';
+import { saveGame, loadGame } from './SaveSystem.js';
+import { checkAchievements } from './AchievementSystem.js';
+import { notifyThreat, notifyAchievement, notifyReactorCritical, notifyAlert } from './NotificationSystem.js';
 
 const TICK_MS = 1000;
 let intervalId = null;
 let tickCount  = 0;
 let _paused    = false;
+
+export { loadGame };
 
 export function startGameLoop()  { if (intervalId) return; _paused = false; intervalId = setInterval(tick, TICK_MS); }
 export function stopGameLoop()   { if (intervalId) { clearInterval(intervalId); intervalId = null; } }
@@ -33,10 +38,10 @@ function tick() {
         const prev  = GameState.mining.rawOres;
         GameState.mining.rawOres = Math.min(cap, prev + mined);
         GameState.mining.totalMined += mined;
-        // Overflow warning
+        GameState.session.oreMined += mined;
         if (prev < cap && GameState.mining.rawOres >= cap) {
             GameState.addLog('RAW ORE STORAGE FULL — ore overflow', 'warn');
-            GameState.emit('alert', { msg: 'RAW STORAGE FULL — sell or upgrade SSM' });
+            notifyAlert('RAW STORAGE FULL — sell or upgrade SSM');
         }
     }
 
@@ -61,7 +66,7 @@ function tick() {
     }
 
     // 7. WEAR / DEGRADATION every 30 ticks
-    if (tickCount % 30 === 0) updateWear();
+    if (tickCount % 30 === 0) { updateWear(); saveGame(GameState); }
 
     // 8. SECURITY THREATS
     GameState.security.nextThreatTimer++;
@@ -83,7 +88,12 @@ function tick() {
     if (temp >= 1200 && temp < 1201) {
         GameState.addLog(`REACTOR TEMP WARNING — ${temp}°C`, 'warn');
         SE.threat();
+        notifyReactorCritical(temp);
     }
+
+    // 11. ACHIEVEMENTS
+    const earned = checkAchievements(GameState);
+    earned.forEach(a => { notifyAchievement(a); GameState.addLog(`ACHIEVEMENT: ${a.label}`, 'ok'); });
 
     GameState.emit('tick', tickCount);
 }
@@ -129,8 +139,9 @@ function updateReactorTemperature() {
 
     if (r.temperature >= 1800 && r.online) {
         r.online = false;
+        GameState.session.meltdownsAvoided++;
         GameState.addLog('REACTOR EMERGENCY SHUTDOWN — MELTDOWN AVERTED', 'crit');
-        GameState.emit('alert', { type: 'MELTDOWN', msg: 'REACTOR EMERGENCY SHUTDOWN — TEMPERATURE CRITICAL' });
+        notifyAlert('☢ REACTOR EMERGENCY SHUTDOWN — MELTDOWN AVERTED');
         SE.threat();
     }
     r.temperature = Math.round(Math.max(20, r.temperature));
@@ -138,39 +149,34 @@ function updateReactorTemperature() {
 
 // ─────────────────────────────────────────────────────────────────
 function updateWear() {
-    // Reactor wears faster at high temp and high upgrade level
+    const wm = GameState._diffWearMult || 1.0;
     if (GameState.reactor.online) {
         const tempFactor = GameState.reactor.temperature / 1000;
-        const gain = 0.3 + tempFactor * 0.4 + (GameState.reactor.upgradeLevel - 1) * 0.1;
+        const gain = (0.3 + tempFactor * 0.4 + (GameState.reactor.upgradeLevel - 1) * 0.1) * wm;
         GameState.reactor.wear = Math.min(100, GameState.reactor.wear + gain);
-        if (GameState.reactor.wear >= 75 && GameState.reactor.wear < 76) {
+        if (GameState.reactor.wear >= 75 && GameState.reactor.wear < 75 + gain + 0.1) {
             GameState.addLog('REACTOR heavily worn — efficiency dropping', 'warn');
-            GameState.emit('alert', { msg: 'REACTOR WEAR CRITICAL — repair needed' });
+            notifyAlert('⚠ REACTOR WEAR CRITICAL — repair in Security');
         }
     }
 
-    // Mining wears with use
     if (GameState.mining.online) {
-        const gain = 0.2 + (GameState.mining.upgradeLevel - 1) * 0.08;
+        const gain = (0.2 + (GameState.mining.upgradeLevel - 1) * 0.08) * wm;
         GameState.mining.wear = Math.min(100, GameState.mining.wear + gain);
-        if (GameState.mining.wear >= 75 && GameState.mining.wear < 76) {
+        if (GameState.mining.wear >= 75 && GameState.mining.wear < 75 + gain + 0.1)
             GameState.addLog('MINING SHAFT heavily worn — output dropping', 'warn');
-        }
     }
 
-    // Refinery wears with activity
     if (GameState.refinery.online && GameState.refinery.refinedOres > 0) {
-        const gain = 0.15 + (GameState.refinery.upgradeLevel - 1) * 0.06;
+        const gain = (0.15 + (GameState.refinery.upgradeLevel - 1) * 0.06) * wm;
         GameState.refinery.wear = Math.min(100, GameState.refinery.wear + gain);
     }
 
-    // Water pump wears when running
     if (GameState.water.pumpOnline) {
-        const gain = 0.1 + (GameState.water.upgradeLevel - 1) * 0.05;
+        const gain = (0.1 + (GameState.water.upgradeLevel - 1) * 0.05) * wm;
         GameState.water.wear = Math.min(100, GameState.water.wear + gain);
-        if (GameState.water.wear >= 75 && GameState.water.wear < 76) {
+        if (GameState.water.wear >= 75 && GameState.water.wear < 75 + gain + 0.1)
             GameState.addLog('WATER PUMP heavily worn — cooling degraded', 'warn');
-        }
     }
 
     GameState.emit('wear', {});
@@ -182,6 +188,7 @@ export function repairSystem(system) {
     if (!cost || GameState.cash < cost) return false;
     GameState.cash -= cost;
     GameState[system].wear = 0;
+    GameState.session.repairsPerformed++;
     GameState.addLog(`${system.toUpperCase()} repaired — wear reset`, 'ok');
     GameState.emit('repair', { system });
     SE.resolve();
@@ -191,19 +198,34 @@ export function repairSystem(system) {
 // ─────────────────────────────────────────────────────────────────
 function autoSellOres() {
     const s = GameState.ssm;
-    const sell = () => {
-        const re = Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
-        const rfe = Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
-        if (re + rfe > 0) {
-            GameState.cash += re + rfe;
-            GameState.mining.rawOres = GameState.mining.rawOres % 1;
-            GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1;
+    const target = s.sellTarget || 'both';
+
+    // Smart mode — sell whichever is better value relative to base, only when price is spiking
+    if (target === 'smart' && s.smartSellUnlocked) {
+        const rawRatio     = s.rawOrePrice / 2;
+        const refinedRatio = s.refinedOrePrice / 8;
+        if (rawRatio >= 1.2 && rawRatio >= refinedRatio) {
+            const earned = Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
+            if (earned > 0) { GameState.cash += earned; GameState.session.cashEarned += earned; GameState.mining.rawOres = GameState.mining.rawOres % 1; }
+        } else if (refinedRatio >= 1.2) {
+            const earned = Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
+            if (earned > 0) { GameState.cash += earned; GameState.session.cashEarned += earned; GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1; }
         }
-    };
-    if (s.sellMode === 'always') { sell(); }
-    else if (s.sellMode === 'threshold') {
-        const avg = (s.rawOrePrice + s.refinedOrePrice * 2) / 3;
-        if (avg >= s.sellThreshold) sell();
+        return;
+    }
+
+    let earned = 0;
+    if (target === 'both' || target === 'raw') {
+        earned += Math.floor(GameState.mining.rawOres) * s.rawOrePrice;
+        GameState.mining.rawOres = GameState.mining.rawOres % 1;
+    }
+    if (target === 'both' || target === 'refined') {
+        earned += Math.floor(GameState.refinery.refinedOres) * s.refinedOrePrice;
+        GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1;
+    }
+    if (earned > 0) {
+        GameState.cash += earned;
+        GameState.session.cashEarned += earned;
     }
 }
 
@@ -222,7 +244,7 @@ function fluctuatePrices() {
 
     if (spike) {
         GameState.addLog(`MARKET SPIKE — ore prices x${mult.toFixed(1)}`, 'ok');
-        GameState.emit('alert', { msg: `PRICE SPIKE: ORE +${Math.round((mult-1)*100)}% — SELL NOW` });
+        notifyAlert(`PRICE SPIKE: ORE +${Math.round((mult-1)*100)}% — SELL NOW`);
     } else if (crash) {
         GameState.addLog(`MARKET CRASH — ore prices -${Math.round((1-mult)*100)}%`, 'warn');
     }
@@ -281,7 +303,7 @@ function maybeSpawnThreat() {
             onSpawn: (t) => {
                 // Malware immediately takes a system offline
                 GameState.addLog(`MALWARE — ${t.target.toUpperCase()} forcibly disabled`, 'crit');
-                GameState.emit('alert', { msg: `MALWARE: ${t.target.toUpperCase()} OFFLINE` });
+                notifyAlert(`⚠ MALWARE: ${t.target.toUpperCase()} OFFLINE — GO TO SECURITY`);
                 switch(t.target) {
                     case 'mining':   GameState.mining.online   = false; break;
                     case 'refinery': GameState.refinery.online = false; break;
@@ -314,6 +336,7 @@ function maybeSpawnThreat() {
     tDef.onSpawn(threat);
     GameState.security.threats.push(threat);
     GameState.emit('threat', threat);
+    notifyThreat(threat);
     SE.threat();
 }
 
@@ -357,6 +380,7 @@ export function resolveThreat(threatId, silent = false) {
     } else if (!silent) {
         GameState.addLog(`${t.type} on ${t.target.toUpperCase()} neutralised`, 'ok');
     }
+    if (!silent) GameState.session.threatsResolved++;
     GameState.security.threats.splice(idx, 1);
     GameState.emit('threatResolved', threatId);
 }

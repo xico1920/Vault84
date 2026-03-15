@@ -129,7 +129,7 @@ export function createBootScreen(manager) {
                     manager.navigateTo('welcome', username);
                 } else {
                     // vai para a página Auth
-                    manager.navigateTo('auth');
+                    manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'auth' : localStorage.getItem('vault84_lore_seen') ? 'difficulty' : 'lore');
                 }
             });
 
@@ -205,7 +205,7 @@ export function createBootScreen(manager) {
                 if (username) {
                     manager.navigateTo('welcome', username);
                 } else {
-                    manager.navigateTo('auth');
+                    manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'auth' : localStorage.getItem('vault84_lore_seen') ? 'difficulty' : 'lore');
                 }
             }
         },

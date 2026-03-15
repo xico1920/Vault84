@@ -2,14 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Vault 84</title>
   <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="assets/img/logo_voltec2.png" type=".png">
-  <!-- Tailwind removed: game uses custom CSS only -->
-  <link rel="preload" href="assets/audio/boot.mp3" as="audio">
-  <link rel="preload" href="assets/audio/welcome.mp3" as="audio">
-  <link rel="preload" href="assets/audio/click.mp3" as="audio">
+  <link rel="icon" href="assets/img/logo_voltec2.png" type="image/png">
   <link rel="preload" href="assets/img/logo_voltec2.png" as="image">
 </head>
 <body class="noisy">
@@ -17,7 +14,7 @@
   <div class="monitor-shell">
 
     <div class="frame" id="crt-frame">
-      <div class="game"      style="position:absolute;inset:0;overflow:hidden;transform-origin:center center;"></div>
+      <div class="game" style="position:absolute;inset:0;overflow:hidden;transform-origin:center center;pointer-events:auto;"></div>
       <div class="scanlines" style="position:absolute;inset:0;pointer-events:none;z-index:11;border-radius:1.2rem;transform-origin:center center;"></div>
       <div class="glow"      style="position:absolute;inset:0;pointer-events:none;z-index:1;transform-origin:center center;"></div>
     </div>
@@ -60,11 +57,11 @@
     (function() {
       var s1 = document.createElement('script');
       s1.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
-      s1.onload = function() { THREE.GLTFLoader = GLTFLoader; };
+      s1.onload = function() { if(typeof GLTFLoader !== 'undefined') THREE.GLTFLoader = GLTFLoader; };
       document.head.appendChild(s1);
       var s2 = document.createElement('script');
       s2.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js';
-      s2.onload = function() { THREE.OBJLoader = OBJLoader; };
+      s2.onload = function() { if(typeof OBJLoader !== 'undefined') THREE.OBJLoader = OBJLoader; };
       document.head.appendChild(s2);
     })();
   </script>

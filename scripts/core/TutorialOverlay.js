@@ -50,7 +50,10 @@ function playPenSound() {
 
 export function showTutorialIfFirstTime(username) {
     if (localStorage.getItem(TUTORIAL_KEY)) return Promise.resolve();
+    return showTutorial(username);
+}
 
+export function showTutorial(username) {
     return new Promise(resolve => {
         localStorage.setItem(TUTORIAL_KEY, '1');
 

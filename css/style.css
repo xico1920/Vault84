@@ -287,18 +287,23 @@ a:hover, a:focus, a:active {
 /* ── HUD bar ────────────────────────────────────────────────────── */
 .hud-bar {
   display: flex;
+  align-items: stretch;
   gap: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   letter-spacing: 1px;
   flex-shrink: 0;
+  height: 28px;
 }
 
 .hud-item {
-  padding: 0.3rem 1.1rem;
+  padding: 0 0.8rem;
   border-right: 1px solid var(--muted);
   color: var(--dim);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .hud-item span {
@@ -307,6 +312,18 @@ a:hover, a:focus, a:active {
 }
 
 .hud-item.alert span { color: var(--crit); }
+
+.hud-item.hud-osc {
+  flex: 1;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+}
+.hud-item.hud-osc canvas {
+  width: 100%;
+  height: 30px;
+  display: block;
+}
 
 /* ── Department page layout ────────────────────────────────────── */
 .dept-layout {
@@ -381,7 +398,7 @@ a:hover, a:focus, a:active {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 0.25rem;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .stat-row .key {
@@ -389,11 +406,13 @@ a:hover, a:focus, a:active {
   font-size: 0.88rem;
   letter-spacing: 1px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .stat-row .val {
   color: var(--hi);
   text-align: right;
+  flex-shrink: 0;
 }
 
 /* ── Progress bar ───────────────────────────────────────────────── */
@@ -1143,4 +1162,270 @@ input[type="range"] { accent-color: var(--hi); }
 @keyframes hudSecPulse {
   from { opacity: 1; }
   to   { opacity: 0.4; }
+}
+
+/* ── Difficulty screen ──────────────────────────────────────────── */
+.diff-card:hover {
+  background: rgba(20,253,206,0.04) !important;
+}
+
+/* ── Notifications ──────────────────────────────────────────────── */
+#notif-container {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+  max-width: 220px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile & Tablet
+   Strategy: CSS-only, no JS changes.
+   - ≤768px (mobile): remove CRT bezel, full-screen terminal
+   - ≤480px (small mobile): tighter spacing, smaller fonts
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤900px) — already handled for dept-layout above ── */
+
+/* ── Mobile (≤768px) ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Remove bezel — full screen terminal on mobile */
+  body { overflow: auto; }
+
+  .monitor-shell {
+    background: var(--bg);
+  }
+
+  /* Remove the physical CRT frame border/shadow on mobile */
+  .monitor-shell .frame {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide CRT control strip on mobile — no room */
+  .crt-controls { display: none !important; }
+
+  /* Frame fills full viewport */
+  .monitor-shell .frame {
+    flex: 1 1 0 !important;
+    min-height: 0;
+  }
+
+  /* Scanlines/glow still apply but rounded corners removed */
+  .scanlines { border-radius: 0 !important; }
+
+  /* ── Nav: scrollable horizontally on mobile ── */
+  .nav-bar { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  .nav-list { flex-wrap: nowrap; }
+  .nav-list li a { padding: 0.5rem 0.7rem; font-size: 0.8rem; letter-spacing: 1px; white-space: nowrap; }
+
+  /* ── HUD bar: wrap on mobile ── */
+  .hud-bar { flex-wrap: wrap; font-size: 0.72rem; }
+  .hud-item { padding: 4px 8px; }
+
+  /* ── Game container: less padding ── */
+  .game-container { padding: 0 0.75rem 1rem 0.75rem; }
+
+  /* ── Dept layout: single column ── */
+  .dept-layout {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+  .dept-sidebar { flex-direction: column; }
+
+  /* ── Dept 3D panel: shorter on mobile ── */
+  .dept-canvas { height: 140px !important; }
+  .dept-3d-panel { min-height: 0; }
+
+  /* ── Typography ── */
+  h1 { font-size: 2rem !important; }
+  h2 { font-size: 0.8rem !important; }
+
+  /* ── Panels ── */
+  .panel { padding: 0.6rem 0.75rem; }
+  .panel-title { font-size: 0.7rem; }
+
+  /* ── Stat rows ── */
+  .stat-row { font-size: 0.8rem; gap: 0.5rem; }
+
+  /* ── Buttons ── */
+  .btn { font-size: 0.85rem; padding: 5px 12px; }
+
+  /* ── Event log ── */
+  .event-log-bar { font-size: 0.7rem; }
+  .log-header { padding: 3px 8px; }
+
+  /* ── Status screen facility map ── */
+  #facility-map { transform: scale(0.85); transform-origin: top left; }
+
+  /* ── Security camera: full width on mobile ── */
+  #sec-cam-canvas { max-height: 200px !important; }
+
+  /* ── Workshop grid: single column ── */
+  .dept-main > div[style*="grid-template-columns:1fr 1fr"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Small mobile (≤480px) ───────────────────────────────────── */
+@media (max-width: 480px) {
+
+  body { font-size: 18px; }
+
+  .nav-list li a { padding: 0.4rem 0.55rem; font-size: 0.72rem; letter-spacing: 0; }
+  .hud-bar { font-size: 0.65rem; }
+  .hud-item { padding: 3px 6px; }
+
+  h1 { font-size: 1.6rem !important; }
+
+  .game-container { padding: 0 0.5rem 0.75rem 0.5rem; }
+
+  .panel { padding: 0.5rem; }
+
+  /* Oscilloscope narrower */
+  #hud-oscilloscope { max-width: 120px; }
+
+  /* Nav: even more compact */
+  .nav-list li a { padding: 0.35rem 0.45rem; font-size: 0.65rem; }
+
+  /* Dept 3D panel hidden on very small screens to save space */
+  .dept-3d-panel { display: none; }
+
+  /* Stat rows tighter */
+  .stat-row { font-size: 0.72rem; }
+
+  /* Buttons */
+  .btn { font-size: 0.8rem; padding: 4px 10px; }
+  .btn-sm { font-size: 0.72rem; padding: 2px 7px; }
+
+  /* Security screen: stack cam + threats vertically */
+  #sec-cam-canvas { max-height: 160px !important; }
+
+  /* Lore + difficulty screens */
+  .piece.output { padding: 0.75rem !important; }
+}
+
+/* ── Touch improvements ──────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Bigger tap targets on touch devices */
+  .btn { min-height: 38px; }
+  .nav-list li a { min-height: 40px; display: flex; align-items: center; }
+  .cam-btn { min-height: 36px; }
+
+  /* Remove hover effects that don't make sense on touch */
+  .btn:hover:not(:disabled) { background: transparent; color: inherit; }
+  .nav-list li a:hover { background: transparent; color: var(--dim); }
+  .nav-list li a.active:hover { background: rgba(20,253,206,0.07); color: var(--hi); }
+}
+
+/* ── Security screen responsive ─────────────────────────────── */
+@media (max-width: 600px) {
+  .sec-split { flex-direction: column !important; }
+  .sec-cam-col { flex: none !important; width: 100% !important; }
+}
+
+/* ── Difficulty screen mobile fixes ─────────────────────────── */
+@media (max-width: 768px) {
+  /* Remove excess centering space — stick to top */
+  #diff-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 100% !important;
+  }
+
+  /* Difficulty wrapper — top-aligned not centred vertically */
+  .piece.output[style*="justify-content:center"] {
+    justify-content: flex-start !important;
+    padding-top: 1.2rem !important;
+    overflow-y: auto;
+  }
+}
+
+/* ── Nav bar mobile — wrap into 2 rows ───────────────────────── */
+@media (max-width: 768px) {
+  .nav-bar { overflow-x: visible !important; }
+  .nav-list {
+    flex-wrap: wrap !important;
+    width: 100%;
+  }
+  .nav-list li { flex: 1 1 auto; }
+  .nav-list li a {
+    padding: 0.45rem 0.4rem !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.5px !important;
+    text-align: center;
+    border-right: 1px solid var(--muted);
+    border-bottom: 1px solid var(--muted);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-list li { flex: 1 1 25%; } /* ~4 per row */
+  .nav-list li a {
+    font-size: 0.6rem !important;
+    padding: 0.4rem 0.2rem !important;
+    letter-spacing: 0 !important;
+  }
+}
+
+/* ── HUD bar mobile — prevent overflow ──────────────────────── */
+@media (max-width: 768px) {
+  .hud-bar {
+    height: auto !important;
+    min-height: 26px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hud-bar::-webkit-scrollbar { display: none; }
+  .hud-item { white-space: nowrap; flex-shrink: 0; font-size: 0.68rem; padding: 4px 6px; }
+  /* Hide oscilloscope on small screens — it breaks layout */
+  .hud-item.hud-osc { display: none; }
+}
+
+/* ── Nav icons mobile — icon only, hide text ─────────────────── */
+@media (max-width: 768px) {
+  .nav-label { display: none; }
+  .nav-list li { flex: 1 1 auto; min-width: 0; }
+  .nav-list li a {
+    justify-content: center;
+    padding: 0.5rem 0.3rem !important;
+    gap: 0 !important;
+  }
+  .nav-list li a span[style*="width:13px"] {
+    width: 16px !important;
+    height: 16px !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ── Start/Welcome screens — force full height centering mobile ─ */
+@media (max-width: 768px) {
+  /* Ensure .game div fills frame height */
+  .game {
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+  }
+  /* piece output fills .game and centres content */
+  .piece.output {
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+    overflow-y: auto;
+  }
+  /* Start/welcome/loader — keep vertical centering */
+  .piece.output[style*="justify-content:center"] {
+    justify-content: center !important;
+    min-height: 100%;
+  }
 }

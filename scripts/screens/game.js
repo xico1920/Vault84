@@ -1,7 +1,10 @@
 import { GameNavManager } from '../core/gameNavManager.js';
 import { SE } from '../core/SoundEngine.js';
 import { startGameLoop, stopGameLoop } from '../core/GameLoop.js';
+import { loadGame, saveGame } from '../core/SaveSystem.js';
+import { notifyAlert, enableNotifications } from '../core/NotificationSystem.js';
 import { GameState } from '../core/GameState.js';
+import { mountOscilloscope } from '../core/VisualEngine.js';
 import { createOreRefineryScreen }      from './game/OreRefinery.js';
 import { createStatusScreen }           from './game/status.js';
 import { createReactorCoreScreen }      from './game/ReactorCore.js';
@@ -14,6 +17,18 @@ import { createSettingsScreen }         from './game/settings.js';
 
 export function createGameScreen(manager, USERNAME_KEY) {
     let navManager;
+
+    const NAV_ICONS = {
+        status:           `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>`,
+        reactorcore:      `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.5"/><circle cx="8" cy="8" r="6" stroke-dasharray="3 2"/><line x1="8" y1="1" x2="8" y2="3.5"/><line x1="8" y1="12.5" x2="8" y2="15"/><line x1="1" y1="8" x2="3.5" y2="8"/><line x1="12.5" y1="8" x2="15" y2="8"/></svg>`,
+        miningshaft:      `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="14" x2="14" y2="2"/><line x1="2" y1="14" x2="5" y2="11"/><rect x="1" y="12" width="4" height="3" rx="0.5"/><line x1="10" y1="6" x2="14" y2="2"/><line x1="9" y1="4" x2="13" y2="8"/></svg>`,
+        orerefinery:      `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="7" width="8" height="8" rx="0.5"/><path d="M6 7V5h4v2"/><path d="M7 4V2h2v2"/><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/></svg>`,
+        watertreatment:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1 C8 1 3 7 3 10 a5 5 0 0 0 10 0 C13 7 8 1 8 1z"/><line x1="5.5" y1="11" x2="7" y2="9.5"/></svg>`,
+        smartstorageunit: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="14" height="4" rx="0.5"/><rect x="1" y="8" width="14" height="4" rx="0.5"/><circle cx="12.5" cy="4" r="0.8" fill="currentColor" stroke="none"/><circle cx="12.5" cy="10" r="0.8" fill="currentColor" stroke="none"/></svg>`,
+        workshop:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14 L9 7 C8.5 5.5 9 3 11 2 C12 1.5 13.5 2 13.5 2 L11.5 4 L12 5 L13 5.5 L15 3.5 C15 3.5 15.5 5 15 6 C14 8 11.5 8.5 10 8 L3 15 Z"/></svg>`,
+        security:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1 L14 4 V8 C14 12 11 14.5 8 15.5 C5 14.5 2 12 2 8 V4 Z"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="8" y1="5.5" x2="8" y2="10.5"/></svg>`,
+        settings:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.6 2.6l1.1 1.1M12.3 12.3l1.1 1.1M2.6 13.4l1.1-1.1M12.3 3.7l1.1-1.1"/><circle cx="8" cy="8" r="4.5"/></svg>`,
+    };
 
     // Nav icon state indicators
     const NAV_SCREENS = [
@@ -80,7 +95,8 @@ export function createGameScreen(manager, USERNAME_KEY) {
     function buildNavHTML() {
         return NAV_SCREENS.map(({ key, label }) => `
             <li style="position:relative;">
-                <a href="#" data-screen="${key}">${label}</a>
+                <a href="#" data-screen="${key}" style="display:flex;align-items:center;gap:5px;">
+                  <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${label}</span></a>
                 <span class="nav-badge" id="nav-badge-${key}" style="display:none;"></span>
             </li>`).join('');
     }
@@ -146,6 +162,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
                             <span id="hud-temp" class="hud-temp-val">${GameState.reactor.temperature}°C</span><span class="hud-temp-bar-wrap"><span id="hud-temp-bar" class="hud-temp-bar"></span></span>
                         </div>
                         <div class="hud-item" id="hud-sec">SEC<span>NOMINAL</span></div>
+                        <div class="hud-item hud-osc"><canvas id="hud-oscilloscope"></canvas></div>
                     </div>
 
                     <div id="game-content" class="game-container"></div>
@@ -161,7 +178,6 @@ export function createGameScreen(manager, USERNAME_KEY) {
                         </div>
                     </div>
 
-                    <div class="alert-banner" id="alert-banner"></div>
                 </div>`;
 
             if (manager.audio.sounds.bg.paused) {
@@ -250,21 +266,14 @@ export function createGameScreen(manager, USERNAME_KEY) {
             setupLogToggle();
 
             // Alerts
-            const showBanner = msg => {
-                const b = document.getElementById('alert-banner');
-                if (!b) return;
-                b.textContent = `!! ${msg}`;
-                b.style.display = 'block';
-                clearTimeout(b._t);
-                b._t = setTimeout(() => { b.style.display = 'none'; }, 5000);
-            };
-            GameState.on('alert',  d => { showBanner(d.msg); SE.alert(); });
-            GameState.on('threat', t => { showBanner(`${t.type} DETECTED >> ${t.target.toUpperCase()} — GO TO SECURITY`); });
-            GameState.on('cascade', () => { showBanner('REACTOR OFFLINE — CASCADE SHUTDOWN — RESTART SYSTEMS MANUALLY'); SE.threat(); });
-            GameState.on('perimeterAlert', a => { showBanner(`MOTION DETECTED — SECTOR ${a.zone}`); });
+            GameState.on('cascade', () => { notifyAlert('REACTOR OFFLINE — CASCADE SHUTDOWN — RESTART SYSTEMS MANUALLY'); SE.threat(); });
+            GameState.on('perimeterAlert', a => { notifyAlert(`MOTION DETECTED — SECTOR ${a.zone}`); });
 
             renderEventLog();
+            loadGame(GameState);
             startGameLoop();
+            enableNotifications();
+            mountOscilloscope('hud-oscilloscope');
 
             // Power button mute/unmute
             const gameEl = document.querySelector('.game');

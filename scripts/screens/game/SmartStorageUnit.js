@@ -7,39 +7,41 @@ export function createSmartStorageUnitScreen() {
 
     function upd() {
         const s=GameState.ssm, m=GameState.mining, ref=GameState.refinery, $=id=>document.getElementById(id);
-        const rw=$('ssm-raw');  if(rw)rw.textContent=`${Math.floor(m.rawOres)} / ${m.storageMax}`;
-        const rf=$('ssm-ref');  if(rf)rf.textContent=`${Math.floor(ref.refinedOres)} / ${ref.storageMax}`;
-        const ca=$('ssm-cash'); if(ca)ca.textContent=GameState.formatCash(GameState.cash);
-        const rp=$('ssm-rp');   if(rp)rp.textContent=`${s.rawOrePrice.toFixed(1)}$`;
-        const pp=$('ssm-pp');   if(pp)pp.textContent=`${s.refinedOrePrice.toFixed(1)}$`;
-        const rt=$('ssm-rt');   if(rt){rt.textContent=s.rawOrePrice>2?'▲':'▼';rt.style.color=s.rawOrePrice>2?'#14fdce':'#ff2222';}
-        const pt=$('ssm-pt');   if(pt){pt.textContent=s.refinedOrePrice>8?'▲':'▼';pt.style.color=s.refinedOrePrice>8?'#14fdce':'#ff2222';}
-        const al=$('ssm-auto'); if(al){al.textContent=s.autoSell?'ENABLED':'DISABLED';al.style.color=s.autoSell?'#14fdce':'#5ecba8';}
-        const ml=$('ssm-mode'); if(ml)ml.textContent=s.sellMode==='always'?'SELL ALWAYS':`THRESHOLD (${s.sellThreshold}$)`;
-        // Storage bars
-        const rb=$('ssm-raw-bar'); if(rb)rb.style.width=`${Math.min(100,(m.rawOres/m.storageMax)*100)}%`;
-        const rfb=$('ssm-ref-bar'); if(rfb)rfb.style.width=`${Math.min(100,(ref.refinedOres/ref.storageMax)*100)}%`;
-        // Colour warning when near cap
-        const rawPct = m.rawOres / m.storageMax;
-        const refPct = ref.refinedOres / ref.storageMax;
-        if(rb) rb.style.background = rawPct >= 0.9 ? '#ff2222' : rawPct >= 0.7 ? '#ff8800' : '#d4e800';
-        if(rfb) rfb.style.background = refPct >= 0.9 ? '#ff2222' : refPct >= 0.7 ? '#ff8800' : '#14fdce';
+        if($('ssm-raw'))  $('ssm-raw').textContent=`${Math.floor(m.rawOres)} / ${m.storageMax}`;
+        if($('ssm-ref'))  $('ssm-ref').textContent=`${Math.floor(ref.refinedOres)} / ${ref.storageMax}`;
+        if($('ssm-cash')) $('ssm-cash').textContent=GameState.formatCash(GameState.cash);
+        if($('ssm-rp'))   $('ssm-rp').textContent=`${s.rawOrePrice.toFixed(1)}$`;
+        if($('ssm-pp'))   $('ssm-pp').textContent=`${s.refinedOrePrice.toFixed(1)}$`;
+        if($('ssm-rt'))   { $('ssm-rt').textContent=s.rawOrePrice>2?'▲':'▼'; $('ssm-rt').style.color=s.rawOrePrice>2?'#14fdce':'#ff2222'; }
+        if($('ssm-pt'))   { $('ssm-pt').textContent=s.refinedOrePrice>8?'▲':'▼'; $('ssm-pt').style.color=s.refinedOrePrice>8?'#14fdce':'#ff2222'; }
+        if($('ssm-auto')) { $('ssm-auto').textContent=s.autoSell?'ENABLED':'DISABLED'; $('ssm-auto').style.color=s.autoSell?'#14fdce':'#5ecba8'; }
+        const rb=$('ssm-raw-bar'); if(rb){rb.style.width=`${Math.min(100,(m.rawOres/m.storageMax)*100)}%`;rb.style.background=m.rawOres/m.storageMax>=0.9?'#ff2222':m.rawOres/m.storageMax>=0.7?'#ff8800':'#d4e800';}
+        const rfb=$('ssm-ref-bar'); if(rfb){rfb.style.width=`${Math.min(100,(ref.refinedOres/ref.storageMax)*100)}%`;rfb.style.background=ref.refinedOres/ref.storageMax>=0.9?'#ff2222':ref.refinedOres/ref.storageMax>=0.7?'#ff8800':'#14fdce';}
+        // Highlight active sell target
+        ['both','raw','refined','smart'].forEach(t=>{
+            const b=$(`ssm-st-${t}`); if(!b) return;
+            const active = s.sellTarget===t && (t!=='smart'||s.smartSellUnlocked);
+            b.style.background=active?'#14fdce':'transparent'; b.style.color=active?'#020f07':'#14fdce';
+            b.style.opacity = t==='smart'&&!s.smartSellUnlocked?'0.3':'1';
+            b.disabled = t==='smart'&&!s.smartSellUnlocked;
+        });
+        // Smart sell status
+        const ss=$('ssm-smart-status'); if(ss){ss.textContent=s.smartSellUnlocked?'UNLOCKED — sells highest value ore when price >120% base':'Unlock in Workshop (5,000$)';}
     }
 
-    function sellAll() {
+    function sellOres(target) {
         const s=GameState.ssm;
-        const e = Math.floor(GameState.mining.rawOres)*s.rawOrePrice + Math.floor(GameState.refinery.refinedOres)*s.refinedOrePrice;
-        GameState.cash += e;
-        GameState.mining.rawOres = GameState.mining.rawOres % 1;
-        GameState.refinery.refinedOres = GameState.refinery.refinedOres % 1;
-        if(e>0) SE.sell();
+        let earned=0;
+        if(target==='both'||target==='raw') { earned+=Math.floor(GameState.mining.rawOres)*s.rawOrePrice; GameState.mining.rawOres=GameState.mining.rawOres%1; }
+        if(target==='both'||target==='refined') { earned+=Math.floor(GameState.refinery.refinedOres)*s.refinedOrePrice; GameState.refinery.refinedOres=GameState.refinery.refinedOres%1; }
+        if(earned>0) { GameState.cash+=earned; GameState.session.cashEarned+=earned; SE.sell(); }
         const fb=document.getElementById('ssm-fb');
-        if(fb){fb.textContent=e>0?`>> SOLD ${GameState.formatCash(e)}`:'>> NOTHING TO SELL';fb.style.color=e>0?'#14fdce':'#3d9970';setTimeout(()=>{if(fb)fb.textContent='';},1500);}
+        if(fb){fb.textContent=earned>0?`>> SOLD ${GameState.formatCash(earned)}`:'>> NOTHING TO SELL';fb.style.color=earned>0?'#14fdce':'#3d9970';setTimeout(()=>{if(fb)fb.textContent='';},1500);}
         upd();
     }
 
-    const mBtn = (id,lbl,active) =>
-        `<button id="${id}" class="btn btn-sm" style="background:${active?'#14fdce':'transparent'};color:${active?'#020f07':'#14fdce'};">${lbl}</button>`;
+    const mBtn=(id,lbl,active,disabled=false)=>
+        `<button id="${id}" class="btn btn-sm" style="background:${active?'#14fdce':'transparent'};color:${active?'#020f07':'#14fdce'};opacity:${disabled?'0.3':'1'};" ${disabled?'disabled':''}>${lbl}</button>`;
 
     return {
         async render() {
@@ -49,12 +51,10 @@ export function createSmartStorageUnitScreen() {
               <div class="dept-main">
                 <h1>SSM</h1>
                 <h2>SMART STORAGE MANAGEMENT</h2>
-
                 <div class="panel">
                   <div class="panel-title">TREASURY</div>
                   <div style="font-size:2.4rem;color:#14fdce;" id="ssm-cash">${GameState.formatCash(GameState.cash)}</div>
                 </div>
-
                 <div class="panel">
                   <div class="panel-title">INVENTORY</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.5rem;">
@@ -71,26 +71,27 @@ export function createSmartStorageUnitScreen() {
                       <div class="label">@ <span id="ssm-pp">${s.refinedOrePrice.toFixed(1)}$</span> <span id="ssm-pt">▼</span></div>
                     </div>
                   </div>
-                  <div class="label" style="font-size:0.75rem;margin-bottom:0.5rem;">Upgrade SSM in Workshop to increase storage cap.</div>
-                  <div style="display:flex;align-items:center;gap:0.75rem;">
-                    <button id="ssm-sell" class="btn btn-primary" style="font-size:1.1rem;letter-spacing:2px;padding:7px 20px;">SELL ALL</button>
-                    <span id="ssm-fb" style="font-size:0.9rem;color:#14fdce;"></span>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <button id="ssm-sell-both" class="btn btn-primary" style="font-size:1rem;letter-spacing:2px;padding:6px 16px;">SELL ALL</button>
+                    <button id="ssm-sell-raw" class="btn" style="font-size:0.9rem;padding:6px 12px;">SELL RAW</button>
+                    <button id="ssm-sell-ref" class="btn" style="font-size:0.9rem;padding:6px 12px;">SELL REFINED</button>
                   </div>
+                  <span id="ssm-fb" style="display:block;height:1.2rem;font-size:0.9rem;color:#14fdce;margin-top:4px;"></span>
                 </div>
-
                 <div class="panel">
                   <div class="panel-title">AUTO-SELL</div>
                   <div class="stat-row" style="margin-bottom:0.4rem;"><span class="key">STATUS</span><span class="val" id="ssm-auto" style="color:${s.autoSell?'#14fdce':'#3d9970'}">${s.autoSell?'ENABLED':'DISABLED'}</span></div>
-                  <button id="ssm-atog" class="btn btn-sm" style="margin-bottom:0.6rem;">${s.autoSell?'DISABLE':'ENABLE'} AUTO-SELL</button>
-                  <div class="stat-row" style="margin-bottom:0.4rem;"><span class="key">MODE</span><span class="val label" id="ssm-mode">${s.sellMode==='always'?'SELL ALWAYS':`THRESHOLD (${s.sellThreshold}$)`}</span></div>
-                  <div class="btn-group">
-                    ${mBtn('ssm-ma','ALWAYS',s.sellMode==='always')}
-                    ${mBtn('ssm-mt','THRESHOLD',s.sellMode==='threshold')}
+                  <button id="ssm-atog" class="btn btn-sm" style="margin-bottom:0.8rem;">${s.autoSell?'DISABLE':'ENABLE'} AUTO-SELL</button>
+                  <div class="label" style="margin-bottom:0.4rem;">SELL TARGET</div>
+                  <div class="btn-group" style="flex-wrap:wrap;gap:4px;">
+                    ${mBtn('ssm-st-both','BOTH',s.sellTarget==='both')}
+                    ${mBtn('ssm-st-raw','RAW ONLY',s.sellTarget==='raw')}
+                    ${mBtn('ssm-st-refined','REFINED ONLY',s.sellTarget==='refined')}
+                    ${mBtn('ssm-st-smart','SMART ★',s.sellTarget==='smart'&&s.smartSellUnlocked,!s.smartSellUnlocked)}
                   </div>
-                  <div class="label" style="margin-top:0.4rem;">THRESHOLD: only sells when avg price >= ${s.sellThreshold}$</div>
+                  <div id="ssm-smart-status" class="label" style="margin-top:0.4rem;font-size:0.72rem;">${s.smartSellUnlocked?'UNLOCKED — sells highest value ore when price >120% base':'Unlock Smart Sell in Workshop (5,000$)'}</div>
                 </div>
               </div>
-
               <div class="dept-sidebar">
                 ${dept3DPanel('canvas-ssm','SMART STORAGE')}
                 <div class="panel mini-stats">
@@ -107,15 +108,22 @@ export function createSmartStorageUnitScreen() {
         async onRendered() {
             tickFn=()=>upd(); priceFn=()=>upd();
             GameState.on('tick',tickFn); GameState.on('priceUpdate',priceFn);
-            document.getElementById('ssm-sell')?.addEventListener('click', sellAll);
+            document.getElementById('ssm-sell-both')?.addEventListener('click',()=>sellOres('both'));
+            document.getElementById('ssm-sell-raw')?.addEventListener('click',()=>sellOres('raw'));
+            document.getElementById('ssm-sell-ref')?.addEventListener('click',()=>sellOres('refined'));
             document.getElementById('ssm-atog')?.addEventListener('click',()=>{
                 GameState.ssm.autoSell=!GameState.ssm.autoSell;
                 const b=document.getElementById('ssm-atog'); if(b)b.textContent=(GameState.ssm.autoSell?'DISABLE':'ENABLE')+' AUTO-SELL';
                 upd();
             });
-            document.getElementById('ssm-ma')?.addEventListener('click',()=>{GameState.ssm.sellMode='always';const a=document.getElementById('ssm-ma'),t=document.getElementById('ssm-mt');if(a){a.style.background='#14fdce';a.style.color='#020f07';}if(t){t.style.background='transparent';t.style.color='#14fdce';}upd();});
-            document.getElementById('ssm-mt')?.addEventListener('click',()=>{GameState.ssm.sellMode='threshold';const a=document.getElementById('ssm-ma'),t=document.getElementById('ssm-mt');if(a){a.style.background='transparent';a.style.color='#14fdce';}if(t){t.style.background='#14fdce';t.style.color='#020f07';}upd();});
-            viewer3d = mountDeptModel('canvas-ssm','smartstorageunit',{cz:3.5});
+            ['both','raw','refined','smart'].forEach(t=>{
+                document.getElementById(`ssm-st-${t}`)?.addEventListener('click',()=>{
+                    if(t==='smart'&&!GameState.ssm.smartSellUnlocked) return;
+                    GameState.ssm.sellTarget=t; upd();
+                });
+            });
+            upd();
+            viewer3d=mountDeptModel('canvas-ssm','smartstorageunit',{cz:3.5});
         },
 
         onExit() {

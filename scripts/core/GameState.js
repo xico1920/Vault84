@@ -13,11 +13,11 @@ export const GameState = {
         temperature: 720,
         coolantFlow: 'optimal',
         upgradeLevel: 1,
-        wear: 0,          // 0–100: degradação acumulada
-        wearDrainRate: 0, // eficiência perdida por wear
+        wear: 0,
+        wearDrainRate: 0,
 
         get powerGW()    { return this.online ? 2.4 * this.upgradeLevel : 0; },
-        get wearPenalty(){ return Math.max(0, this.wear / 100 * 0.4); }, // até -40% eficiência
+        get wearPenalty(){ return Math.max(0, this.wear / 100 * 0.4); },
         get efficiency() {
             if (!this.online) return 0;
             let eff = 1.0 - this.wearPenalty;
@@ -31,7 +31,9 @@ export const GameState = {
             if (this.temperature >= 1000) return 'WARNING';
             if (this.wear >= 70) return 'WORN';
             return 'ONLINE';
-        }
+        },
+        // Power consumed by reactor systems themselves
+        get selfConsumptionGW() { return 0.2 * this.upgradeLevel; }
     },
 
     // ─── WATER TREATMENT ─────────────────────────────────────────
@@ -43,7 +45,8 @@ export const GameState = {
         get coolingPower() {
             if (!this.pumpOnline) return 0;
             return this.flowRate * this.upgradeLevel * (1 - this.wear / 100 * 0.3);
-        }
+        },
+        get powerDrawGW() { return this.pumpOnline ? 0.3 * this.upgradeLevel : 0; }
     },
 
     // ─── MINING SHAFT ────────────────────────────────────────────
@@ -53,8 +56,9 @@ export const GameState = {
         totalMined: 0,
         autoRate: 1,
         upgradeLevel: 1,
-        storageMax: 50,   // cap de armazenamento — sobe com SSM upgrade
+        storageMax: 50,
         wear: 0,
+        get powerDrawGW() { return this.online ? 0.4 * this.upgradeLevel : 0; },
         get ratePerTick() {
             const reactorBoost = GameState.reactor.efficiency;
             const wearPenalty  = Math.max(0, this.wear / 100 * 0.5);
@@ -68,8 +72,9 @@ export const GameState = {
         refinedOres: 0,
         upgradeLevel: 1,
         refineRate: 0.5,
-        storageMax: 30,   // cap de armazenamento refined
+        storageMax: 30,
         wear: 0,
+        get powerDrawGW() { return this.online ? 0.3 * this.upgradeLevel : 0; },
         get efficiency() {
             const wearPenalty = Math.max(0, this.wear / 100 * 0.4);
             return GameState.reactor.efficiency * (GameState.water.pumpOnline ? 1.0 : 0.4) * (1 - wearPenalty);
@@ -83,6 +88,8 @@ export const GameState = {
     ssm: {
         autoSell: false,
         sellMode: 'always',
+        sellTarget: 'both',  // 'both' | 'raw' | 'refined' | 'smart'
+        smartSellUnlocked: false,
         sellThreshold: 50,
         rawOrePrice: 2,
         refinedOrePrice: 8,
@@ -90,6 +97,20 @@ export const GameState = {
         upgradeLevel: 1,
         get rawPrice()     { return this.rawOrePrice; },
         get refinedPrice() { return this.refinedOrePrice; }
+    },
+
+    // ─── POWER BUDGET ─────────────────────────────────────────────
+    get powerOutput() { return this.reactor.powerGW * this.reactor.efficiency; },
+    get powerDraw()   {
+        return (this.water.powerDrawGW || 0) +
+               (this.mining.powerDrawGW || 0) +
+               (this.refinery.powerDrawGW || 0);
+    },
+    get powerHeadroom() { return this.powerOutput - this.powerDraw; },
+    powerDrawForUpgrade(system) {
+        // How much extra GW a next upgrade of system would need
+        const draws = { water: 0.3, mining: 0.4, refinery: 0.3, reactor: 0 };
+        return draws[system] || 0;
     },
 
     // ─── SECURITY ─────────────────────────────────────────────────
@@ -119,6 +140,22 @@ export const GameState = {
         }
     },
 
+    // ─── DIFFICULTY ──────────────────────────────────────────────
+    difficulty: 'STANDARD', // EASY | STANDARD | HARD | NIGHTMARE
+
+    // ─── SESSION STATS ───────────────────────────────────────────
+    session: {
+        startTime: Date.now(),
+        oreMined: 0,
+        threatsResolved: 0,
+        meltdownsAvoided: 0,
+        cashEarned: 0,
+        repairsPerformed: 0,
+    },
+
+    // ─── ACHIEVEMENTS ────────────────────────────────────────────
+    achievements: [], // list of earned achievement ids
+
     // ─── HELPERS ─────────────────────────────────────────────────
     formatCash(val) {
         if (val >= 1_000_000) return `${(val/1_000_000).toFixed(2)}M$`;
@@ -138,3 +175,5 @@ export const GameState = {
     on(event, fn)   { if (!this._listeners[event]) this._listeners[event] = []; this._listeners[event].push(fn); },
     emit(event, data) { (this._listeners[event] || []).forEach(fn => fn(data)); }
 };
+
+// Patch — add difficulty and session stats (appended at runtime)
