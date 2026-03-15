@@ -15,6 +15,7 @@ import { createWorkshopScreen }         from './game/Workshop.js';
 import { createSecurityScreen }         from './game/Security.js';
 import { createSettingsScreen }         from './game/settings.js';
 import { createMusicScreen }            from './game/Music.js';
+import { createCreditsScreen }          from './game/Credits.js';
 import { musicEngine }                  from '../core/MusicEngine.js';
 
 export function createGameScreen(manager, USERNAME_KEY) {
@@ -30,6 +31,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
         workshop:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14 L9 7 C8.5 5.5 9 3 11 2 C12 1.5 13.5 2 13.5 2 L11.5 4 L12 5 L13 5.5 L15 3.5 C15 3.5 15.5 5 15 6 C14 8 11.5 8.5 10 8 L3 15 Z"/></svg>`,
         security:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1 L14 4 V8 C14 12 11 14.5 8 15.5 C5 14.5 2 12 2 8 V4 Z"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="8" y1="5.5" x2="8" y2="10.5"/></svg>`,
         music:            `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 12V4l8-2v8"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/></svg>`,
+        credits:          `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="5" r="2"/><path d="M4 14c0-2.2 1.8-4 4-4s4 1.8 4 4"/><circle cx="8" cy="8" r="6.5"/></svg>`,
         settings:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.6 2.6l1.1 1.1M12.3 12.3l1.1 1.1M2.6 13.4l1.1-1.1M12.3 3.7l1.1-1.1"/><circle cx="8" cy="8" r="4.5"/></svg>`,
     };
 
@@ -44,6 +46,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
         { key: 'workshop',         label: 'WORKSHOP' },
         { key: 'security',         label: 'SECURITY' },
         { key: 'music',            label: 'MUSIC'    },
+        { key: 'credits',          label: 'CREDITS'  },
         { key: 'settings',         label: 'SETTINGS' },
     ];
 
@@ -200,6 +203,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
                 workshop:         createWorkshopScreen(),
                 security:         createSecurityScreen(),
                 music:            createMusicScreen(),
+                credits:          createCreditsScreen(),
                 settings:         createSettingsScreen(USERNAME_KEY, manager.audio)
             };
 
