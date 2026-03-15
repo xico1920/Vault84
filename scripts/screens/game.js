@@ -14,6 +14,8 @@ import { createSmartStorageUnitScreen } from './game/SmartStorageUnit.js';
 import { createWorkshopScreen }         from './game/Workshop.js';
 import { createSecurityScreen }         from './game/Security.js';
 import { createSettingsScreen }         from './game/settings.js';
+import { createMusicScreen }            from './game/Music.js';
+import { musicEngine }                  from '../core/MusicEngine.js';
 
 export function createGameScreen(manager, USERNAME_KEY) {
     let navManager;
@@ -27,6 +29,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
         smartstorageunit: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="14" height="4" rx="0.5"/><rect x="1" y="8" width="14" height="4" rx="0.5"/><circle cx="12.5" cy="4" r="0.8" fill="currentColor" stroke="none"/><circle cx="12.5" cy="10" r="0.8" fill="currentColor" stroke="none"/></svg>`,
         workshop:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14 L9 7 C8.5 5.5 9 3 11 2 C12 1.5 13.5 2 13.5 2 L11.5 4 L12 5 L13 5.5 L15 3.5 C15 3.5 15.5 5 15 6 C14 8 11.5 8.5 10 8 L3 15 Z"/></svg>`,
         security:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1 L14 4 V8 C14 12 11 14.5 8 15.5 C5 14.5 2 12 2 8 V4 Z"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="8" y1="5.5" x2="8" y2="10.5"/></svg>`,
+        music:            `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 12V4l8-2v8"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/></svg>`,
         settings:         `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.6 2.6l1.1 1.1M12.3 12.3l1.1 1.1M2.6 13.4l1.1-1.1M12.3 3.7l1.1-1.1"/><circle cx="8" cy="8" r="4.5"/></svg>`,
     };
 
@@ -40,6 +43,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
         { key: 'smartstorageunit', label: 'SSM'      },
         { key: 'workshop',         label: 'WORKSHOP' },
         { key: 'security',         label: 'SECURITY' },
+        { key: 'music',            label: 'MUSIC'    },
         { key: 'settings',         label: 'SETTINGS' },
     ];
 
@@ -195,6 +199,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
                 smartstorageunit: createSmartStorageUnitScreen(),
                 workshop:         createWorkshopScreen(),
                 security:         createSecurityScreen(),
+                music:            createMusicScreen(),
                 settings:         createSettingsScreen(USERNAME_KEY, manager.audio)
             };
 
@@ -275,6 +280,19 @@ export function createGameScreen(manager, USERNAME_KEY) {
             enableNotifications();
             mountOscilloscope('hud-oscilloscope');
 
+            // Load local music tracks from assets/audio/music/
+            // Add any mp3s you place in that folder to this list:
+            const LOCAL_TRACKS = [
+                { label: 'ROY BROWN — MIGHTY MIGHTY MAN',              file: 'Roy Brown   Mighty Mighty Man.mp3' },
+                { label: 'COLE PORTER — ANYTHING GOES',                file: 'Anything goes by cole porter.mp3' },
+                { label: 'THE INK SPOTS — I DON\'T WANT TO SET THE WORLD ON FIRE', file: 'I Don\'t Want To Set The World On Fire-The Ink Spots.mp3' },
+                { label: 'BOB CROSBY — WAY BACK HOME',                 file: 'Way Back Home - Bob Crosby and the Bobcats.mp3' },
+                { label: 'TEX BENEKE — A WONDERFUL GUY',               file: 'A Wonderful Guy - Tex Beneke.mp3' },
+            ];
+            LOCAL_TRACKS.forEach(t => {
+                musicEngine.addLocal(t.label, `assets/audio/music/${t.file}`);
+            });
+
             // Power button mute/unmute
             const gameEl = document.querySelector('.game');
             if (gameEl) {
@@ -286,6 +304,6 @@ export function createGameScreen(manager, USERNAME_KEY) {
             }
         },
 
-        onExit() { stopGameLoop(); }
+        onExit() { stopGameLoop(); musicEngine.stop(); }
     };
 }

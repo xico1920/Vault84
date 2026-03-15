@@ -209,7 +209,7 @@ export function createLoreScreen(manager) {
             stopTyping();
             playConfirm();
             localStorage.setItem(LORE_KEY, '1');
-            setTimeout(() => manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'game' : 'difficulty'), 200);
+            manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'game' : 'difficulty');
             return;
         }
         typeSlide(currentSlide);
@@ -224,7 +224,7 @@ export function createLoreScreen(manager) {
         stopTyping();
         localStorage.setItem(LORE_KEY, '1');
         playSlideChange();
-        setTimeout(() => manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'game' : 'difficulty'), 100);
+        manager.navigateTo(localStorage.getItem('vault84_difficulty') ? 'game' : 'difficulty');
     }
 
     return {
@@ -273,6 +273,7 @@ export function createLoreScreen(manager) {
             // Start
             currentSlide = 0;
             typeSlide(0);
+            return ''; // prevent screenManager from overwriting innerHTML
         },
 
         onExit() {

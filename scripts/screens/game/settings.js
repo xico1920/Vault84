@@ -62,6 +62,7 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
             });
             document.getElementById('set-lore')?.addEventListener('click', () => {
                 localStorage.removeItem('vault84_lore_seen');
+                window._pauseGame?.();
                 window._screenManager?.navigateTo('lore');
             });
             document.getElementById('set-tutorial')?.addEventListener('click', () => {

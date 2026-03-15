@@ -1429,3 +1429,17 @@ input[type="range"] { accent-color: var(--hi); }
     min-height: 100%;
   }
 }
+
+/* ── Music player HUD ───────────────────────────────────────── */
+.hud-music {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-left: 1px solid var(--muted);
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-left: auto;
+}
+.hud-music:hover { background: rgba(20,253,206,0.05); }
+@media (max-width: 768px) { .hud-music { display: none; } }
