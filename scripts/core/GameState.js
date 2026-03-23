@@ -148,9 +148,12 @@ export const GameState = {
         startTime: Date.now(),
         oreMined: 0,
         threatsResolved: 0,
+        threatsFailed: 0,
+        consecutiveThreatsSolved: 0,
         meltdownsAvoided: 0,
         cashEarned: 0,
         repairsPerformed: 0,
+        uptimeStreak: 0,         // ticks with ALL systems online simultaneously
     },
 
     // ─── ACHIEVEMENTS ────────────────────────────────────────────

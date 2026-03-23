@@ -1,5 +1,4 @@
 import { SE } from '../../core/SoundEngine.js';
-import { ModelViewer } from '../../core/ModelViewer.js';
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 import { mountReactorHeatmap } from '../../core/VisualEngine.js';

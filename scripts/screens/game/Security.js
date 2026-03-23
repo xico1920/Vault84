@@ -34,25 +34,68 @@ export function createSecurityScreen() {
         if(mgInstance){mgInstance.destroy();mgInstance=null;}
         if(mgInterval){clearInterval(mgInterval);mgInterval=null;}
         activeMG={tid};
+
+        // Signal that a minigame is active — disables keyboard nav shortcuts
+        window._minigameActive = true;
+
         renderMGShell(t);
         const cv=document.getElementById('mg-canvas'); if(!cv) return;
+
+        // Track whether onComplete fired before the threat disappeared
+        let mgCompleted = false;
+
         const onProgress=pct=>{ t.clicks=Math.round(pct*t.clicksReq); const b=document.getElementById('mg-bar'); if(b)b.style.width=`${Math.round(pct*100)}%`; };
+
         const onComplete=()=>{
+            mgCompleted = true;
             if(mgInstance){mgInstance.destroy();mgInstance=null;}
             if(mgInterval){clearInterval(mgInterval);mgInterval=null;}
             resolveThreat(tid); SE.resolve(); activeMG=null;
+            window._minigameActive = false;
             const mg=document.getElementById('sec-mg');
             if(mg) mg.innerHTML=`<div style="text-align:center;padding:8px;border:1px solid #14fdce;color:#14fdce;font-size:0.8rem;letter-spacing:3px;">✓ NEUTRALIZED</div>`;
             setTimeout(()=>{renderThreats();renderMGIdle();},2000);
         };
+
         if(t.type==='VIRUS')   mgInstance=virusMinigame(cv,t,onProgress,onComplete);
         else if(t.type==='BREACH')  mgInstance=breachMinigame(cv,t,onProgress,onComplete);
         else if(t.type==='MALWARE') mgInstance=malwareMinigame(cv,t,onProgress,onComplete);
+
         mgInterval=setInterval(()=>{
             if(!activeMG) return;
             const threat=GameState.security.threats.find(x=>x.id===tid);
-            if(!threat){if(mgInstance){mgInstance.destroy();mgInstance=null;}clearInterval(mgInterval);activeMG=null;renderMGIdle();return;}
-            const el=document.getElementById('mg-time'); if(el){el.textContent=`${threat.timeLeft}s`;el.style.color=threat.timeLeft<8?'#ff2222':'#ff8800';}
+
+            if(!threat){
+                // Threat is gone — either resolved (mgCompleted=true) or expired (failed)
+                if(mgInstance){mgInstance.destroy();mgInstance=null;}
+                clearInterval(mgInterval);mgInterval=null;
+                activeMG=null;
+                window._minigameActive = false;
+
+                if(!mgCompleted){
+                    // Minigame failed — threat expired while player was engaged
+                    const mg=document.getElementById('sec-mg');
+                    if(mg) mg.innerHTML=`
+                        <div style="text-align:center;padding:10px 8px;border:1px solid #ff2222;background:rgba(10,0,0,0.6);">
+                            <div style="color:#ff2222;font-size:0.8rem;letter-spacing:3px;margin-bottom:4px;">✗ CONTAINMENT FAILED</div>
+                            <div style="color:#ff4444;font-size:0.65rem;letter-spacing:1px;">SYSTEM DAMAGE APPLIED — CHECK MAINTENANCE</div>
+                        </div>`;
+                    // Shake the game-content area for impact
+                    const content=document.getElementById('game-content');
+                    if(content){
+                        content.classList.remove('threat-fail-flash');
+                        void content.offsetWidth;
+                        content.classList.add('threat-fail-flash');
+                        setTimeout(()=>content.classList.remove('threat-fail-flash'),900);
+                    }
+                    SE.threat();
+                }
+                setTimeout(()=>{renderThreats();renderMGIdle();},2500);
+                return;
+            }
+
+            const el=document.getElementById('mg-time');
+            if(el){el.textContent=`${threat.timeLeft}s`;el.style.color=threat.timeLeft<8?'#ff2222':'#ff8800';}
         },300);
     }
 
@@ -118,6 +161,10 @@ export function createSecurityScreen() {
             const bar=document.getElementById(`tb-${t.id}`); if(bar) bar.style.width=`${Math.round(t.clicks/t.clicksReq*100)}%`;
         });
         renderRepair();
+
+        // Show failed threats count if any
+        const fc=document.getElementById('sec-failed');
+        if(fc) fc.textContent=GameState.session.threatsFailed||0;
     }
 
     const cams=getCameras();
@@ -183,6 +230,9 @@ export function createSecurityScreen() {
                   <div class="panel-title">SPECS</div>
                   <div class="stat-row"><span class="key">SEC LEVEL</span><span class="val">${GameState.workshop.upgrades.security.level}</span></div>
                   <div class="stat-row"><span class="key">INTERVAL</span><span class="val">${GameState.security.threatInterval}s</span></div>
+                  <div class="stat-row"><span class="key">RESOLVED</span><span class="val" style="color:#14fdce;">${GameState.session.threatsResolved}</span></div>
+                  <div class="stat-row"><span class="key">FAILED</span><span class="val" style="color:${(GameState.session.threatsFailed||0)>0?'#ff8800':'#3d9970'};"><span id="sec-failed">${GameState.session.threatsFailed||0}</span></span></div>
+                  <div class="stat-row"><span class="key">STREAK</span><span class="val" style="color:#14fdce;">${GameState.session.consecutiveThreatsSolved||0}</span></div>
                 </div>
               </div>
             </div>`;
@@ -194,6 +244,7 @@ export function createSecurityScreen() {
             GameState.on('tick',tickFn);
             GameState.on('threat',threatFn);
             GameState.on('threatResolved',threatFn);
+            GameState.on('threatFailed',threatFn);
             GameState.on('repair',()=>renderRepair());
             renderThreats(); renderMGIdle(); renderRepair();
 
@@ -238,7 +289,8 @@ export function createSecurityScreen() {
             if(mgInterval){clearInterval(mgInterval);mgInterval=null;}
             if(cameraInstance){cameraInstance.destroy();cameraInstance=null;}
             activeMG=null;
-            ['tick','threat','threatResolved','repair'].forEach(e=>{
+            window._minigameActive = false;
+            ['tick','threat','threatResolved','threatFailed','repair'].forEach(e=>{
                 if(GameState._listeners[e])GameState._listeners[e]=GameState._listeners[e].filter(f=>f!==tickFn&&f!==threatFn);
             });
             viewer3d?.dispose();

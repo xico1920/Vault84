@@ -1,11 +1,30 @@
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 import { showTutorial } from '../../core/TutorialOverlay.js';
+import { exportSave, importSave, getLeaderboard } from '../../core/SaveSystem.js';
+import { GameState } from '../../core/GameState.js';
+import { SE } from '../../core/SoundEngine.js';
 
 export function createSettingsScreen(USERNAME_KEY, audio) {
     let viewer3d=null;
     return {
         async render() {
             const vol=audio?.sounds?.bg?Math.round((audio.sounds.bg.volume||0.1)*100):10;
+            const sfxVol = Math.round((SE._vol || 0.18) * 100);
+            const board = getLeaderboard();
+            const diffs = ['EASY', 'STANDARD', 'HARD', 'NIGHTMARE'];
+            const diffColors = { EASY:'#14fdce', STANDARD:'#d4e800', HARD:'#ff8800', NIGHTMARE:'#ff2222' };
+
+            const leaderboardHTML = diffs.map(d => {
+                const run = board[d];
+                if (!run) return `<div class="stat-row"><span class="key" style="color:${diffColors[d]};font-size:0.68rem;">${d}</span><span class="val" style="color:#1a4a2a;">--</span></div>`;
+                const mins = Math.floor(run.timeSeconds / 60), secs = run.timeSeconds % 60;
+                return `<div style="border-left:2px solid ${diffColors[d]};padding:3px 6px;margin-bottom:4px;background:rgba(0,0,0,0.2);">
+                    <div style="color:${diffColors[d]};font-size:0.65rem;letter-spacing:1px;">${d}</div>
+                    <div style="color:#14fdce;font-size:0.72rem;">${GameState.formatCash(run.cashEarned)}</div>
+                    <div style="color:#3d9970;font-size:0.58rem;">${run.oreMined} ore mined · ${run.threatsResolved} threats · ${mins}m${secs}s</div>
+                </div>`;
+            }).join('');
+
             return `
             <div class="dept-layout">
               <div class="dept-main">
@@ -21,8 +40,8 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
                   </div>
                   <div class="stat-row">
                     <span class="key" style="min-width:160px;">SOUND EFFECTS</span>
-                    <input id="set-sfxvol" type="range" min="0" max="100" value="80" style="flex:1;accent-color:#14fdce;margin:0 0.75rem;">
-                    <span class="val" id="set-sfxvol-lbl">80%</span>
+                    <input id="set-sfxvol" type="range" min="0" max="100" value="${sfxVol}" style="flex:1;accent-color:#14fdce;margin:0 0.75rem;">
+                    <span class="val" id="set-sfxvol-lbl">${sfxVol}%</span>
                   </div>
                 </div>
 
@@ -35,14 +54,41 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
                 </div>
 
                 <div class="panel">
+                  <div class="panel-title">SAVE DATA</div>
+                  <p class="label" style="margin-bottom:0.75rem;">Export your save as a JSON file, or import a previously exported save.</p>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button id="set-export" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#14fdce;color:#14fdce;">EXPORT SAVE</button>
+                    <button id="set-import-btn" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#5ecba8;color:#5ecba8;">IMPORT SAVE</button>
+                    <input id="set-import-file" type="file" accept=".json" style="display:none;">
+                  </div>
+                  <div id="set-import-status" style="margin-top:6px;font-size:0.65rem;color:#3d9970;min-height:14px;"></div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-title">// BEST RUNS</div>
+                  <div style="margin-top:0.4rem;">${leaderboardHTML}</div>
+                </div>
+
+                <div class="panel">
                   <div class="panel-title">ABOUT</div>
                   <p class="label">VAULT 84 -- VOLTEC SYSTEMS</p>
-                  <p class="label">BUILD 0.1.0-ALPHA</p>
+                  <p class="label">BUILD 0.2.0</p>
                 </div>
               </div>
 
               <div class="dept-sidebar">
                 ${dept3DPanel('canvas-settings','SETTINGS')}
+                <div class="panel mini-stats">
+                  <div class="panel-title">KEYBOARD SHORTCUTS</div>
+                  <div style="font-size:0.62rem;color:#3d9970;line-height:1.8;">
+                    <div><span style="color:#14fdce;">1</span> STATUS &nbsp;<span style="color:#14fdce;">2</span> REACTOR</div>
+                    <div><span style="color:#14fdce;">3</span> MINING &nbsp;<span style="color:#14fdce;">4</span> REFINERY</div>
+                    <div><span style="color:#14fdce;">5</span> WATER &nbsp;&nbsp;<span style="color:#14fdce;">6</span> SSM</div>
+                    <div><span style="color:#14fdce;">7</span> WORKSHOP <span style="color:#14fdce;">8</span> SECURITY</div>
+                    <div><span style="color:#14fdce;">9</span> MUSIC &nbsp;&nbsp;<span style="color:#14fdce;">0</span> SETTINGS</div>
+                    <div><span style="color:#14fdce;">C</span> CREDITS</div>
+                  </div>
+                </div>
                 <div class="panel mini-stats">
                   <div class="panel-title">SYSTEM</div>
                   <p>OVERSEER<span style="color:#14fdce;">ACTIVE</span></p>
@@ -58,6 +104,7 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
                 const l=document.getElementById('set-bgvol-lbl');if(l)l.textContent=`${e.target.value}%`;
             });
             document.getElementById('set-sfxvol')?.addEventListener('input',e=>{
+                SE.setVolume(e.target.value / 100);
                 const l=document.getElementById('set-sfxvol-lbl');if(l)l.textContent=`${e.target.value}%`;
             });
             document.getElementById('set-lore')?.addEventListener('click', () => {
@@ -75,6 +122,40 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
                     location.reload();
                 }
             });
+
+            // ── Export save ───────────────────────────────────────
+            document.getElementById('set-export')?.addEventListener('click', () => {
+                const ok = exportSave();
+                const status = document.getElementById('set-import-status');
+                if (status) {
+                    status.textContent = ok ? '// SAVE EXPORTED SUCCESSFULLY' : '// NO SAVE DATA FOUND';
+                    status.style.color = ok ? '#14fdce' : '#ff8800';
+                    setTimeout(() => { if(status) status.textContent = ''; }, 3000);
+                }
+            });
+
+            // ── Import save ───────────────────────────────────────
+            document.getElementById('set-import-btn')?.addEventListener('click', () => {
+                document.getElementById('set-import-file')?.click();
+            });
+            document.getElementById('set-import-file')?.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const status = document.getElementById('set-import-status');
+                    const ok = importSave(ev.target.result, GameState);
+                    if (status) {
+                        status.textContent = ok ? '// SAVE IMPORTED — RELOADING...' : '// IMPORT FAILED — INVALID FILE';
+                        status.style.color = ok ? '#14fdce' : '#ff2222';
+                    }
+                    if (ok) setTimeout(() => location.reload(), 1200);
+                };
+                reader.readAsText(file);
+                // Reset input so same file can be re-imported
+                e.target.value = '';
+            });
+
             viewer3d=mountDeptModel('canvas-settings','settings',{
                 cz:3.8,
                 animate:(model,scene,t)=>{

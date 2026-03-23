@@ -377,15 +377,29 @@ export function mountReactorHeatmap(canvasId) {
 }
 
 // ── VAULT MAP ─────────────────────────────────────────────────────
-export function mountVaultMap(canvasId) {
+export function mountVaultMap(canvasId, onRoomClick) {
     const cv = document.getElementById(canvasId);
     if (!cv) return null;
     const ctx = cv.getContext('2d');
     let raf, t = 0, destroyed = false;
+    let hoveredRoom = -1;
 
     const W = 400, H = 260;
     cv.width = W; cv.height = H;
     cv.style.width = '100%'; cv.style.height = 'auto';
+    if (onRoomClick) cv.style.cursor = 'pointer';
+
+    // Maps room key to GameNavManager screen name
+    const KEY_TO_SCREEN = {
+        reactor:  'reactorcore',
+        water:    'watertreatment',
+        mining:   'miningshaft',
+        refinery: 'orerefinery',
+        security: 'security',
+        workshop: 'workshop',
+        ssm:      'smartstorageunit',
+        control:  'status',
+    };
 
     // Room layout — [x, y, w, h, label, stateKey]
     const rooms = [
@@ -460,18 +474,24 @@ export function mountVaultMap(canvasId) {
 
         // Draw rooms
         rooms.forEach((r, i) => {
-            const col   = r.col();
-            const pulse = 0.7 + Math.sin(t * 0.05 + i) * 0.3;
+            const col     = r.col();
+            const pulse   = 0.7 + Math.sin(t * 0.05 + i) * 0.3;
+            const isHover = onRoomClick && hoveredRoom === i;
 
             // Room background
-            ctx.fillStyle = `rgba(2,15,7,0.9)`;
+            ctx.fillStyle = isHover ? 'rgba(20,253,206,0.08)' : 'rgba(2,15,7,0.9)';
             ctx.fillRect(r.x, r.y, r.w, r.h);
 
             // Room border
             ctx.strokeStyle = col === '#555' ? '#1a3a22' : col;
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = col === '#555' ? 0.4 : pulse;
+            ctx.lineWidth = isHover ? 2 : 1.5;
+            ctx.globalAlpha = col === '#555' ? 0.4 : (isHover ? 1 : pulse);
+            if (isHover) {
+                ctx.shadowColor = col;
+                ctx.shadowBlur  = 8;
+            }
             ctx.strokeRect(r.x, r.y, r.w, r.h);
+            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
 
             // Status dot
@@ -485,16 +505,24 @@ export function mountVaultMap(canvasId) {
 
             // Label
             ctx.fillStyle = col === '#555' ? '#2a5a33' : col;
-            ctx.font = '9px VT323, monospace';
+            ctx.font = isHover ? 'bold 9px VT323, monospace' : '9px VT323, monospace';
             ctx.textAlign = 'center';
             ctx.fillText(r.label, r.x + r.w/2, r.y + r.h/2 + 3);
+
+            // "[ ENTER ]" hint on hover
+            if (isHover && KEY_TO_SCREEN[r.key]) {
+                ctx.font = '7px VT323, monospace';
+                ctx.fillStyle = 'rgba(20,253,206,0.6)';
+                ctx.fillText('[ ENTER ]', r.x + r.w/2, r.y + r.h/2 + 13);
+            }
             ctx.textAlign = 'left';
         });
 
         // Vault header
         ctx.fillStyle = 'rgba(20,253,206,0.4)';
         ctx.font = '11px VT323, monospace';
-        ctx.fillText('VAULT 84 — FACILITY MAP', 10, H - 8);
+        const clickHint = onRoomClick ? ' — CLICK TO NAVIGATE' : '';
+        ctx.fillText(`VAULT 84 — FACILITY MAP${clickHint}`, 10, H - 8);
 
         // Threat count
         const threats = window._GameState?.security?.threats?.length || 0;
@@ -509,6 +537,35 @@ export function mountVaultMap(canvasId) {
         raf = requestAnimationFrame(draw);
     }
     draw();
+
+    // ── Interactive click + hover ─────────────────────────────────
+    function getMapCoords(e) {
+        const rect = cv.getBoundingClientRect();
+        return {
+            mx: (e.clientX - rect.left) * (W / rect.width),
+            my: (e.clientY - rect.top)  * (H / rect.height),
+        };
+    }
+
+    function getRoomAt(mx, my) {
+        return rooms.findIndex(r => mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h);
+    }
+
+    if (onRoomClick) {
+        cv.addEventListener('mousemove', (e) => {
+            const { mx, my } = getMapCoords(e);
+            hoveredRoom = getRoomAt(mx, my);
+        });
+        cv.addEventListener('mouseleave', () => { hoveredRoom = -1; });
+        cv.addEventListener('click', (e) => {
+            const { mx, my } = getMapCoords(e);
+            const idx = getRoomAt(mx, my);
+            if (idx !== -1) {
+                const screen = KEY_TO_SCREEN[rooms[idx].key];
+                if (screen) onRoomClick(screen);
+            }
+        });
+    }
 
     return { destroy() { destroyed = true; cancelAnimationFrame(raf); } };
 }

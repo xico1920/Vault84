@@ -9,6 +9,7 @@ export class GameNavManager {
     }
 
     async navigateTo(screenName, ...args) {
+        window._minigameActive = false;
         if (this.currentScreen && this.currentScreen.onExit) {
             await this.currentScreen.onExit();
         }

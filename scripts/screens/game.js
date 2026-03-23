@@ -50,6 +50,21 @@ export function createGameScreen(manager, USERNAME_KEY) {
         { key: 'settings',         label: 'SETTINGS' },
     ];
 
+    // Keyboard shortcuts: key → screen
+    const KEY_SHORTCUTS = {
+        '1': 'status',
+        '2': 'reactorcore',
+        '3': 'miningshaft',
+        '4': 'orerefinery',
+        '5': 'watertreatment',
+        '6': 'smartstorageunit',
+        '7': 'workshop',
+        '8': 'security',
+        '9': 'music',
+        '0': 'settings',
+        'c': 'credits',
+    };
+
     function getNavBadge(key) {
         switch(key) {
             case 'reactorcore':
@@ -106,6 +121,31 @@ export function createGameScreen(manager, USERNAME_KEY) {
                   <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${label}</span></a>
                 <span class="nav-badge" id="nav-badge-${key}" style="display:none;"></span>
             </li>`).join('');
+    }
+
+    // Inject CSS for threat flash animations (once)
+    function injectFlashStyles() {
+        if (document.getElementById('vault84-flash-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'vault84-flash-styles';
+        style.textContent = `
+            @keyframes threatSpawnFlash {
+                0%,100% { background: transparent; }
+                20%,80% { background: rgba(255,34,34,0.05); }
+            }
+            @keyframes threatFailFlash {
+                0%,100% { box-shadow: none; }
+                25%,75% { box-shadow: inset 0 0 50px rgba(255,34,34,0.18); }
+            }
+            @keyframes navThreatFlash {
+                0%,100% { background: transparent; }
+                30%,70% { background: rgba(255,34,34,0.18); }
+            }
+            .threat-spawn-flash { animation: threatSpawnFlash 0.6s ease; }
+            .threat-fail-flash  { animation: threatFailFlash  0.9s ease; }
+            .nav-threat-flash   { animation: navThreatFlash   0.5s ease 2; border-radius: 3px; }
+        `;
+        document.head.appendChild(style);
     }
 
     // Event log state
@@ -187,6 +227,8 @@ export function createGameScreen(manager, USERNAME_KEY) {
 
                 </div>`;
 
+            injectFlashStyles();
+
             if (manager.audio.sounds.bg.paused) {
                 manager.audio.setVolume('bg', 0.1);
                 manager.audio.play('bg');
@@ -209,10 +251,22 @@ export function createGameScreen(manager, USERNAME_KEY) {
 
             const contentContainer = document.getElementById('game-content');
             navManager = new GameNavManager(contentContainer, screens, 'status');
+            window._navManager = navManager; // exposed for vault map + other screens
 
             document.querySelectorAll('.nav-list a').forEach(link => {
                 link.addEventListener('click', e => { e.preventDefault(); navManager.navigateTo(link.dataset.screen); });
             });
+
+            // ── Keyboard shortcuts ────────────────────────────────
+            const _keyHandler = (e) => {
+                // Don't intercept when user is typing or a minigame is active
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (window._minigameActive) return;
+                const screen = KEY_SHORTCUTS[e.key.toLowerCase()];
+                if (screen) { e.preventDefault(); navManager.navigateTo(screen); }
+            };
+            document.addEventListener('keydown', _keyHandler);
+            window._gameKeyHandler = _keyHandler;
 
             // HUD tick updates
             GameState.on('tick', () => {
@@ -264,6 +318,41 @@ export function createGameScreen(manager, USERNAME_KEY) {
                 updateNavBadges();
             });
 
+            // ── Threat flash — content area + target nav icon ─────
+            GameState.on('threat', (threat) => {
+                const content = document.getElementById('game-content');
+                if (content) {
+                    content.classList.remove('threat-spawn-flash');
+                    void content.offsetWidth; // force reflow to restart animation
+                    content.classList.add('threat-spawn-flash');
+                    setTimeout(() => content.classList.remove('threat-spawn-flash'), 600);
+                }
+                // Flash the nav item for the targeted system
+                const targetScreenMap = {
+                    reactor: 'reactorcore', mining: 'miningshaft',
+                    refinery: 'orerefinery', water: 'watertreatment',
+                    ssm: 'smartstorageunit',
+                };
+                const targetScreen = targetScreenMap[threat.target];
+                if (targetScreen) {
+                    const navItem = document.querySelector(`[data-screen="${targetScreen}"]`)?.closest('li');
+                    if (navItem) {
+                        navItem.classList.remove('nav-threat-flash');
+                        void navItem.offsetWidth;
+                        navItem.classList.add('nav-threat-flash');
+                        setTimeout(() => navItem.classList.remove('nav-threat-flash'), 1000);
+                    }
+                }
+                // Always flash security nav too
+                const secItem = document.querySelector('[data-screen="security"]')?.closest('li');
+                if (secItem) {
+                    secItem.classList.remove('nav-threat-flash');
+                    void secItem.offsetWidth;
+                    secItem.classList.add('nav-threat-flash');
+                    setTimeout(() => secItem.classList.remove('nav-threat-flash'), 1000);
+                }
+            });
+
             // Log updates — show unread dot when minimized
             GameState.on('log', (entry) => {
                 renderEventLog();
@@ -285,7 +374,6 @@ export function createGameScreen(manager, USERNAME_KEY) {
             mountOscilloscope('hud-oscilloscope');
 
             // Load local music tracks from assets/audio/music/
-            // Add any mp3s you place in that folder to this list:
             const LOCAL_TRACKS = [
                 { label: 'ROY BROWN — MIGHTY MIGHTY MAN',              file: 'Roy Brown   Mighty Mighty Man.mp3' },
                 { label: 'COLE PORTER — ANYTHING GOES',                file: 'Anything goes by cole porter.mp3' },
@@ -308,6 +396,16 @@ export function createGameScreen(manager, USERNAME_KEY) {
             }
         },
 
-        onExit() { stopGameLoop(); musicEngine.stop(); }
+        onExit() {
+            stopGameLoop();
+            musicEngine.stop();
+            // Clean up keyboard handler
+            if (window._gameKeyHandler) {
+                document.removeEventListener('keydown', window._gameKeyHandler);
+                window._gameKeyHandler = null;
+            }
+            window._navManager = null;
+            window._minigameActive = false;
+        }
     };
 }

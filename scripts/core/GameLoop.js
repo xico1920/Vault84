@@ -2,7 +2,7 @@
 
 import { GameState } from './GameState.js';
 import { SE } from './SoundEngine.js';
-import { saveGame, loadGame } from './SaveSystem.js';
+import { saveGame, loadGame, updateLeaderboard } from './SaveSystem.js';
 import { checkAchievements } from './AchievementSystem.js';
 import { notifyThreat, notifyAchievement, notifyReactorCritical, notifyAlert } from './NotificationSystem.js';
 
@@ -65,8 +65,12 @@ function tick() {
         fluctuatePrices();
     }
 
-    // 7. WEAR / DEGRADATION every 30 ticks
-    if (tickCount % 30 === 0) { updateWear(); saveGame(GameState); }
+    // 7. WEAR / DEGRADATION every 30 ticks — also save + update leaderboard
+    if (tickCount % 30 === 0) {
+        updateWear();
+        saveGame(GameState);
+        updateLeaderboard(GameState);
+    }
 
     // 8. SECURITY THREATS
     GameState.security.nextThreatTimer++;
@@ -91,7 +95,18 @@ function tick() {
         notifyReactorCritical(temp);
     }
 
-    // 11. ACHIEVEMENTS
+    // 11. UPTIME STREAK — all systems must be online
+    const allOnline = GameState.reactor.online &&
+                      GameState.mining.online  &&
+                      GameState.refinery.online &&
+                      GameState.water.pumpOnline;
+    if (allOnline) {
+        GameState.session.uptimeStreak = (GameState.session.uptimeStreak || 0) + 1;
+    } else {
+        GameState.session.uptimeStreak = 0;
+    }
+
+    // 12. ACHIEVEMENTS
     const earned = checkAchievements(GameState);
     earned.forEach(a => { notifyAchievement(a); GameState.addLog(`ACHIEVEMENT: ${a.label}`, 'ok'); });
 
@@ -232,7 +247,6 @@ function autoSellOres() {
 // ─────────────────────────────────────────────────────────────────
 function fluctuatePrices() {
     const s = GameState.ssm;
-    const prevRaw = s.rawOrePrice, prevRef = s.refinedOrePrice;
 
     // Random market events
     const spike = Math.random() < 0.08; // 8% chance of price spike
@@ -352,7 +366,22 @@ export function tickThreats() {
         const t = GameState.security.threats.find(x => x.id === id);
         if (t) {
             GameState.addLog(`${t.type} on ${t.target.toUpperCase()} expired — system damaged`, 'crit');
-            // On expiry: bring system back online but heavily worn
+
+            // Apply real damage when threats expire unresolved
+            if (t.type === 'VIRUS') {
+                const s = t.target;
+                if (s === 'mining')   GameState.mining.wear   = Math.min(100, GameState.mining.wear   + 20 * t.severity);
+                if (s === 'refinery') GameState.refinery.wear = Math.min(100, GameState.refinery.wear + 20 * t.severity);
+                if (s === 'reactor')  GameState.reactor.wear  = Math.min(100, GameState.reactor.wear  + 15 * t.severity);
+                if (s === 'water')    GameState.water.wear    = Math.min(100, GameState.water.wear    + 15 * t.severity);
+                if (s === 'ssm')      GameState.cash          = Math.max(0,   GameState.cash          - 100 * t.severity);
+            }
+            if (t.type === 'BREACH') {
+                // Breach empties treasury on expiry
+                GameState.cash = Math.max(0, GameState.cash - 200 * t.severity);
+                notifyAlert(`☠ BREACH EXPIRED — ${200 * t.severity}$ DRAINED`);
+            }
+            // On expiry: bring malware-disabled system back online but heavily worn
             if (t.type === 'MALWARE') {
                 switch(t.target) {
                     case 'mining':   GameState.mining.online   = true; GameState.mining.wear   = Math.min(100, GameState.mining.wear   + 30); break;
@@ -360,6 +389,11 @@ export function tickThreats() {
                     case 'water':    GameState.water.pumpOnline= true; GameState.water.wear    = Math.min(100, GameState.water.wear    + 30); break;
                 }
             }
+
+            // Track failure + reset streak
+            GameState.session.threatsFailed = (GameState.session.threatsFailed || 0) + 1;
+            GameState.session.consecutiveThreatsSolved = 0;
+            GameState.emit('threatFailed', { id, target: t.target, type: t.type });
         }
         resolveThreat(id, true); // silent resolve — no SE.resolve()
     });
@@ -380,7 +414,10 @@ export function resolveThreat(threatId, silent = false) {
     } else if (!silent) {
         GameState.addLog(`${t.type} on ${t.target.toUpperCase()} neutralised`, 'ok');
     }
-    if (!silent) GameState.session.threatsResolved++;
+    if (!silent) {
+        GameState.session.threatsResolved++;
+        GameState.session.consecutiveThreatsSolved = (GameState.session.consecutiveThreatsSolved || 0) + 1;
+    }
     GameState.security.threats.splice(idx, 1);
     GameState.emit('threatResolved', threatId);
 }

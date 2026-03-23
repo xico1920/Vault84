@@ -4,6 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Vault 84</title>
+  <meta name="description" content="Vault 84 — a browser-based underground facility management game. Keep the reactor online, mine ore, neutralize threats. Runs entirely in the browser.">
+
+  <!-- Open Graph / LinkedIn / Twitter -->
+  <meta property="og:type"        content="website">
+  <meta property="og:title"       content="Vault 84">
+  <meta property="og:description" content="A browser-based underground facility management game built with vanilla JS + Three.js. Keep the reactor online. Survive.">
+  <meta property="og:image"       content="assets/img/og-preview.png">
+  <meta name="twitter:card"       content="summary_large_image">
+  <meta name="twitter:title"      content="Vault 84">
+  <meta name="twitter:description" content="A browser-based underground facility management game built with vanilla JS + Three.js.">
+  <meta name="twitter:image"      content="assets/img/og-preview.png">
+  <!-- Replace og-preview.png with a 1200x630 screenshot of the game -->
+
   <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/img/logo_voltec2.png" type="image/png">
@@ -53,18 +66,6 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    (function() {
-      var s1 = document.createElement('script');
-      s1.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
-      s1.onload = function() { if(typeof GLTFLoader !== 'undefined') THREE.GLTFLoader = GLTFLoader; };
-      document.head.appendChild(s1);
-      var s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js';
-      s2.onload = function() { if(typeof OBJLoader !== 'undefined') THREE.OBJLoader = OBJLoader; };
-      document.head.appendChild(s2);
-    })();
-  </script>
 
   <script type="module" src="scripts/main.js"></script>
 

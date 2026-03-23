@@ -396,7 +396,7 @@ export function buildVaultOverview(scene) {
 
     // ── Door body — thick cylinder, like a bank vault ─────────
     const doorBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.05, 1.05, 0.32, 64),
+        new THREE.CylinderGeometry(1.05, 1.05, 0.32, 24),
         mid
     );
     doorBody.rotation.x = Math.PI / 2;
@@ -405,16 +405,16 @@ export function buildVaultOverview(scene) {
 
     // Door face — slightly forward
     const doorFace = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.02, 1.02, 0.04, 64),
+        new THREE.CylinderGeometry(1.02, 1.02, 0.04, 24),
         bright
     );
     doorFace.rotation.x = Math.PI / 2;
     doorFace.position.z = 0.17;
     group.add(doorFace);
 
-    // ── Locking bolt ring — 8 thick rectangular bolts ─────────
+    // ── Locking bolt ring — 6 thick rectangular bolts ─────────
     // These are the bolts that slide out and lock into the wall
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
         const a = (i / 8) * Math.PI * 2;
         const bolt = new THREE.Mesh(
             new THREE.BoxGeometry(0.10, 0.28, 0.20),
@@ -430,7 +430,7 @@ export function buildVaultOverview(scene) {
     }
 
     // ── Outer gear ring — teeth around the door edge ──────────
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 16; i++) {
         const a = (i / 24) * Math.PI * 2;
         const tooth = new THREE.Mesh(
             new THREE.BoxGeometry(0.07, 0.14, 0.10),
@@ -444,7 +444,7 @@ export function buildVaultOverview(scene) {
     // ── Inner structural rings ─────────────────────────────────
     [0.82, 0.60, 0.40].forEach((r, i) => {
         const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(r, 0.025, 6, 48),
+            new THREE.TorusGeometry(r, 0.025, 4, 24),
             i === 0 ? bright : dim
         );
         ring.position.z = 0.18;
@@ -465,7 +465,7 @@ export function buildVaultOverview(scene) {
 
     // ── Central wheel / handle ─────────────────────────────────
     // Hub disc
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 16), bright);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 10), bright);
     hub.rotation.x = Math.PI / 2;
     hub.position.z = 0.23;
     group.add(hub);
@@ -531,7 +531,7 @@ export function buildSettings(scene) {
     function makeGear(radius, teeth, thickness, cx, cy) {
         const g = new THREE.Group();
         // Disc body — vertical, axis along Z
-        const disc = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, thickness, 28), mat);
+        const disc = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, thickness, 16), mat);
         disc.rotation.x = Math.PI / 2; // stand upright
         g.add(disc);
         // Teeth around the XY perimeter
@@ -550,8 +550,8 @@ export function buildSettings(scene) {
         return g;
     }
 
-    const big   = makeGear(0.72, 12, 0.14,  0,    0);
-    const small = makeGear(0.32, 7,  0.12,  1.06, 0.62);
+    const big   = makeGear(0.72, 9, 0.14,  0,    0);
+    const small = makeGear(0.32, 5, 0.12,  1.06, 0.62);
 
     group.userData.bigGear   = big;
     group.userData.smallGear = small;

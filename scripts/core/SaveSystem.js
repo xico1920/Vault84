@@ -1,6 +1,7 @@
 // SaveSystem.js — localStorage persistence
 
-const SAVE_KEY = 'vault84_save_v1';
+const SAVE_KEY        = 'vault84_save_v1';
+const LEADERBOARD_KEY = 'vault84_leaderboard_v1';
 
 const SAVE_FIELDS = {
     cash:    v => v.cash,
@@ -124,4 +125,69 @@ export function deleteSave() {
 
 export function hasSave() {
     return !!localStorage.getItem(SAVE_KEY);
+}
+
+// ─── EXPORT / IMPORT ─────────────────────────────────────────────
+export function exportSave() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const blob = new Blob([raw], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `vault84_save_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return true;
+    } catch(e) {
+        console.warn('Export failed:', e);
+        return false;
+    }
+}
+
+export function importSave(jsonString, GameState) {
+    try {
+        const data = JSON.parse(jsonString);
+        // Basic validation — must have a cash field and savedAt
+        if (data.savedAt === undefined || data.cash === undefined) return false;
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        return loadGame(GameState);
+    } catch(e) {
+        console.warn('Import failed:', e);
+        return false;
+    }
+}
+
+// ─── LEADERBOARD ─────────────────────────────────────────────────
+export function getLeaderboard() {
+    try { return JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '{}'); }
+    catch(e) { return {}; }
+}
+
+export function updateLeaderboard(GameState) {
+    try {
+        const board = getLeaderboard();
+        const diff  = GameState.difficulty || 'STANDARD';
+        const s     = GameState.session;
+        const elapsed = Math.floor((Date.now() - s.startTime) / 1000);
+
+        const entry = {
+            difficulty:       diff,
+            cashEarned:       s.cashEarned,
+            oreMined:         Math.floor(s.oreMined),
+            threatsResolved:  s.threatsResolved,
+            timeSeconds:      elapsed,
+            date:             Date.now(),
+        };
+
+        // Only store best run per difficulty (ranked by cashEarned)
+        if (!board[diff] || entry.cashEarned > board[diff].cashEarned) {
+            board[diff] = entry;
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board));
+        }
+        return board;
+    } catch(e) { return {}; }
 }
