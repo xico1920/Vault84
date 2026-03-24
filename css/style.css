@@ -800,6 +800,8 @@ input[type="range"] { accent-color: var(--hi); }
   position: relative;
   width: min(700px, 94vw); max-height: 90vh;
   overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
   background: linear-gradient(to bottom right, #f8f3e5, #ece5c8);
   border-radius: 2px;
   padding: 2.6rem 3rem 2.2rem 3rem;
@@ -813,7 +815,7 @@ input[type="range"] { accent-color: var(--hi); }
   content: ''; position: absolute; left: 4rem; top: 0; bottom: 0;
   width: 1px; background: rgba(200,70,50,0.3); pointer-events: none;
 }
-#tutorial-overlay.tut-visible .tut-paper { transform: translateY(0) rotate(-0.3deg); opacity: 1; }
+#tutorial-overlay.tut-visible .tut-paper { transform: translateY(0); opacity: 1; }
 #tutorial-overlay.tut-hiding  .tut-paper { transform: translateY(35px) rotate(0.8deg); opacity: 0; }
 
 .tut-paper::-webkit-scrollbar       { width: 6px; }

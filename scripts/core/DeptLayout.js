@@ -84,6 +84,7 @@ export function mountDeptModel(canvasId, dept, opts = {}) {
 
     const animate = (now = 0) => {
         animId = requestAnimationFrame(animate);
+        if (window._tutorialActive) return;
         if (frameInterval && now - lastFrame < frameInterval) return;
         lastFrame = now;
         if (model) {

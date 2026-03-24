@@ -134,6 +134,7 @@ export function showTutorial(username) {
         `;
 
         document.body.appendChild(overlay);
+        window._tutorialActive = true;
 
         requestAnimationFrame(() => requestAnimationFrame(() => {
             overlay.classList.add('tut-visible');
@@ -168,7 +169,7 @@ export function showTutorial(username) {
         document.getElementById('tut-close').addEventListener('click', () => {
             overlay.classList.remove('tut-visible');
             overlay.classList.add('tut-hiding');
-            setTimeout(() => { overlay.remove(); resolve(); }, 500);
+            setTimeout(() => { overlay.remove(); window._tutorialActive = false; resolve(); }, 500);
         });
 
         overlay.addEventListener('click', e => {
