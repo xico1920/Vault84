@@ -148,7 +148,7 @@ export function showTutorial(username) {
             prompt.style.opacity = '0';
             setTimeout(() => { prompt.style.display = 'none'; }, 200);
 
-            playPenSound();
+            setTimeout(playPenSound, 50);
 
             setTimeout(() => {
                 signed.style.display = 'block';
