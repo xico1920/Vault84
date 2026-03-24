@@ -68,7 +68,7 @@ export function createCreditsScreen() {
                 100% { filter:brightness(1);   transform:translateX(0);    }
               }
             </style>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;height:100%;padding-top:0.5rem;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;height:100%;padding-top:0.5rem;">
 
               ${DEVS.map(dev => `
               <div style="border:1px solid var(--muted);background:rgba(20,253,206,0.02);display:flex;flex-direction:column;">
@@ -83,7 +83,7 @@ export function createCreditsScreen() {
                 <div style="display:flex;gap:0;border-bottom:1px solid var(--muted);">
                   <div class="cred-photo-wrap" style="flex-shrink:0;border-right:1px solid var(--muted);">
                     <img src="${dev.photo}" alt="${dev.name}"
-                      style="width:130px;height:130px;object-fit:cover;image-rendering:pixelated;">
+                      style="width:clamp(80px,25vw,130px);height:clamp(80px,25vw,130px);object-fit:cover;image-rendering:pixelated;">
                     <div class="cred-photo-noise"></div>
                     <div style="font-size:0.45rem;color:var(--muted);letter-spacing:1px;text-align:center;padding:3px 0;border-top:1px solid var(--muted);">▓ 16-BIT RENDER</div>
                   </div>

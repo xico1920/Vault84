@@ -1,5 +1,6 @@
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createWaterTreatmentScreen() {
     let viewer3d = null, tickFn = null;
@@ -12,7 +13,7 @@ export function createWaterTreatmentScreen() {
         const c=$('wt-cl');   if(c){c.textContent=w.pumpOnline?'ACTIVE':'INACTIVE';c.style.color=w.pumpOnline?'#14fdce':'#ff2222';}
         const t=$('wt-tmp');  if(t){t.textContent=`${r.temperature}C`;t.style.color=tc(r.temperature);}
         const b=$('wt-tbar'); if(b){b.style.width=`${Math.min(100,(r.temperature/1800)*100)}%`;b.style.background=tc(r.temperature);}
-        const tog=$('wt-tog'); if(tog){tog.textContent=w.pumpOnline?'SHUTDOWN PUMP':'START PUMP';tog.className=`btn ${w.pumpOnline?'btn-danger':''}`;}
+        const tog=$('wt-tog'); if(tog){tog.textContent=w.pumpOnline?t('wt_shutdown'):t('wt_start');tog.className=`btn ${w.pumpOnline?'btn-danger':''}`;}
         const wn=$('wt-warn'); if(wn)wn.style.display=(!w.pumpOnline&&r.temperature>800)?'block':'none';
     }
 
@@ -22,21 +23,21 @@ export function createWaterTreatmentScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>WATER TREATMENT</h1>
-                <h2>COOLANT CIRCULATION PLANT</h2>
+                <h1>${t('wt_h1')}</h1>
+                <h2>${t('wt_h2')}</h2>
 
                 <div class="panel">
-                  <div class="panel-title">PUMP STATUS</div>
+                  <div class="panel-title">${t('wt_pump')}</div>
                   <div class="stat-row"><span class="key">PUMP</span><span class="val" id="wt-st" style="color:${w.pumpOnline?'#14fdce':'#ff2222'}">${w.pumpOnline?'OPERATIONAL':'OFFLINE'}</span></div>
                   <div class="stat-row"><span class="key">FLOW RATE</span><span class="val" id="wt-fl">${w.pumpOnline?`${w.flowRate*w.upgradeLevel} L/min`:'0 L/min'}</span></div>
                   <div class="stat-row"><span class="key">COOLING LOOP</span><span class="val" id="wt-cl" style="color:${w.pumpOnline?'#14fdce':'#ff2222'}">${w.pumpOnline?'ACTIVE':'INACTIVE'}</span></div>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">REACTOR THERMAL FEED</div>
+                  <div class="panel-title">${t('wt_thermal_feed')}</div>
                   <div class="stat-row"><span class="key">CORE TEMP</span><span class="val" id="wt-tmp" style="color:${tc(r.temperature)}">${r.temperature}C</span></div>
                   <div class="bar-track"><div class="bar-fill" id="wt-tbar" style="width:${Math.min(100,(r.temperature/1800)*100)}%;background:${tc(r.temperature)};"></div></div>
-                  <div class="label">Pump keeps reactor below critical threshold.</div>
+                  <div class="label">${t('wt_pump_desc')}</div>
                 </div>
 
                 <div id="wt-warn" style="display:${!w.pumpOnline&&r.temperature>800?'block':'none'};padding:0.5rem 0.75rem;border:1px solid #ff2222;color:#ff2222;margin:0.5rem 0;letter-spacing:1px;font-size:0.95rem;">
@@ -44,7 +45,7 @@ export function createWaterTreatmentScreen() {
                 </div>
 
                 <button id="wt-tog" class="btn ${w.pumpOnline?'btn-danger':''}" style="width:100%;max-width:260px;padding:8px;font-size:1.1rem;letter-spacing:3px;margin-top:0.3rem;">
-                  ${w.pumpOnline?'SHUTDOWN PUMP':'START PUMP'}
+                  ${w.pumpOnline?t('wt_shutdown'):t('wt_start')}
                 </button>
 
                 <hr class="sep">
@@ -56,9 +57,9 @@ export function createWaterTreatmentScreen() {
               </div>
 
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-water','WATER TREATMENT')}
+                ${dept3DPanel('canvas-water', t('wt_h1'))}
                 <div class="panel mini-stats">
-                  <div class="panel-title">SPECS</div>
+                  <div class="panel-title">${t('wt_specs')}</div>
                   <p>PUMP LVL<span>${w.upgradeLevel}</span></p>
                   <p>MAX FLOW<span>${w.flowRate*w.upgradeLevel} L/min</span></p>
                   <p>PWR DRAW<span>${(w.upgradeLevel*0.1).toFixed(1)} GW</span></p>

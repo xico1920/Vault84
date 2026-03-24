@@ -2,6 +2,7 @@ import { SE } from './core/SoundEngine.js';
 import { pauseGameLoop, resumeGameLoop, isGamePaused, loadGame } from './core/GameLoop.js';
 import { GameState } from './core/GameState.js';
 import { deleteSave, hasSave, isSaveOutdated } from './core/SaveSystem.js';
+import { t, getLang, setLang } from './core/i18n.js';
 import { AudioManager } from './core/audioManager.js';
 import { ScreenManager } from './core/screenManager.js';
 import { createStartScreen } from './screens/start.js';
@@ -13,6 +14,9 @@ import { createWelcomeScreen } from './screens/welcome.js';
 import { createGameScreen } from './screens/game.js';
 import { createDeprecatedScreen } from './screens/deprecated.js';
 
+window.t       = t;
+window.getLang = getLang;
+window._setLang = setLang;
 window._SE = SE;
 window._pauseGame    = pauseGameLoop;
 window._resumeGame   = resumeGameLoop;

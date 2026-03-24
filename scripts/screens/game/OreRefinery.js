@@ -1,6 +1,7 @@
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 import { SE } from '../../core/SoundEngine.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createOreRefineryScreen() {
     let viewer3d = null, tickFn = null, boostCooldown = false;
@@ -17,7 +18,7 @@ export function createOreRefineryScreen() {
         const rt=$('or-rate'); if(rt)rt.textContent=`${ref.ratePerTick.toFixed(2)}/s`;
         const rc=$('or-reff'); if(rc){rc.textContent=`${Math.round(r.efficiency*100)}%`;rc.style.color=r.efficiency>0.6?'#14fdce':'#ff8800';}
         const wc=$('or-wst'); if(wc){wc.textContent=w.pumpOnline?'ONLINE':'OFFLINE';wc.style.color=w.pumpOnline?'#14fdce':'#ff2222';}
-        const togBtn=$('or-toggle'); if(togBtn){togBtn.textContent=ref.online?'SHUT DOWN':'START REFINERY';togBtn.className=`btn ${ref.online?'btn-danger':''}`;}
+        const togBtn=$('or-toggle'); if(togBtn){togBtn.textContent=ref.online?t('or_shutdown'):t('or_start');togBtn.className=`btn ${ref.online?'btn-danger':''}`;}
         const boostBtn=$('or-boost'); if(boostBtn){const ok=!boostCooldown&&ref.online&&r.efficiency>0&&GameState.mining.rawOres>=5;boostBtn.disabled=!ok;boostBtn.style.opacity=ok?'1':'0.4';}
     }
 
@@ -27,8 +28,8 @@ export function createOreRefineryScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>ORE REFINERY</h1>
-                <h2>THERMAL PROCESSING UNIT</h2>
+                <h1>${t('or_h1')}</h1>
+                <h2>${t('or_h2')}</h2>
                 <div class="panel">
                   <div class="panel-title">STATUS</div>
                   <div class="stat-row"><span class="key">OPERATIONAL</span><span class="val" id="or-st" style="color:${ref.online&&eff>0?'#14fdce':'#ff2222'}">${ref.online&&eff>0?'OPERATIONAL':'OFFLINE'}</span></div>
@@ -37,7 +38,7 @@ export function createOreRefineryScreen() {
                   <div class="stat-row"><span class="key">REFINE RATE</span><span class="val" id="or-rate">${ref.ratePerTick.toFixed(2)}/s</span></div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">FLOW</div>
+                  <div class="panel-title">${t('or_flow')}</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
                     <div>
                       <div class="label">INPUT</div>
@@ -52,25 +53,25 @@ export function createOreRefineryScreen() {
                   </div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">MANUAL PROCESSING</div>
-                  <p class="label" style="margin-bottom:0.5rem;">Consume 5 raw ores instantly for a burst of refined output. Useful when auto-refine is slow.</p>
+                  <div class="panel-title">${t('or_manual')}</div>
+                  <p class="label" style="margin-bottom:0.5rem;">${t('or_manual_desc')}</p>
                   <button id="or-boost" class="btn btn-primary" style="width:100%;max-width:240px;padding:10px;font-size:1.2rem;letter-spacing:3px;">[ PROCESS BATCH ]</button>
                   <div id="or-boost-fb" style="height:1.2rem;margin-top:5px;font-size:0.9rem;color:#14fdce;"></div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">EFFICIENCY FACTORS</div>
+                  <div class="panel-title">${t('or_eff_factors')}</div>
                   <div class="stat-row"><span class="key">REACTOR POWER</span><span class="val" id="or-reff" style="color:${r.efficiency>0.6?'#14fdce':'#ff8800'}">${Math.round(r.efficiency*100)}%</span></div>
                   <div class="stat-row"><span class="key">WATER COOLING</span><span class="val" id="or-wst" style="color:${w.pumpOnline?'#14fdce':'#ff2222'}">${w.pumpOnline?'ONLINE':'OFFLINE'}</span></div>
                   <div class="label" style="margin-top:0.4rem;">Without water: 40% max &nbsp;|&nbsp; Without reactor: halted</div>
                 </div>
                 <button id="or-toggle" class="btn ${ref.online?'btn-danger':''}" style="width:100%;max-width:260px;padding:8px;font-size:1.1rem;letter-spacing:3px;margin-top:0.3rem;">
-                  ${ref.online?'SHUT DOWN':'START REFINERY'}
+                  ${ref.online?t('or_shutdown'):t('or_start')}
                 </button>
               </div>
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-refinery','ORE REFINERY')}
+                ${dept3DPanel('canvas-refinery', t('or_h1'))}
                 <div class="panel mini-stats">
-                  <div class="panel-title">SPECS</div>
+                  <div class="panel-title">${t('or_specs')}</div>
                   <p>FURNACES<span>${ref.upgradeLevel}</span></p>
                   <p>PWR DRAW<span>${ref.powerDrawGW.toFixed(1)} GW</span></p>
                   <p>SELL RATIO<span>1:4</span></p>

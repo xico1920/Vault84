@@ -1,6 +1,7 @@
 import { SE } from '../../core/SoundEngine.js';
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createWorkshopScreen() {
     let viewer3d=null, tickFn=null;
@@ -191,10 +192,10 @@ export function createWorkshopScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>WORKSHOP</h1>
-                <h2>SYSTEMS UPGRADE BAY</h2>
+                <h1>${t('nav_workshop')}</h1>
+                <h2>${t('ws_h2')}</h2>
                 <div class="panel">
-                  <div class="panel-title">AVAILABLE FUNDS</div>
+                  <div class="panel-title">${t('ws_funds')}</div>
                   <div style="font-size:2rem;color:#14fdce;" id="ws-cash">${GameState.formatCash(GameState.cash)}</div>
                   <div id="ws-power" style="font-size:0.75rem;letter-spacing:1px;margin-top:4px;"></div>
                   <div id="ws-fb" style="height:1.3rem;font-size:0.9rem;color:#14fdce;margin-top:4px;"></div>
@@ -219,7 +220,7 @@ export function createWorkshopScreen() {
                         <span class="label" style="font-size:0.72rem;">COST: <span id="ws-cost-${key}">${alreadyOwned?'--':GameState.formatCash(co)}</span></span>
                         <span style="display:flex;gap:4px;">
                           ${!isSmartSell ? `<button id="ws-dn-${key}" class="btn btn-sm" style="opacity:${(GameState.workshop.upgrades[key]?.level||1)>1?'0.7':'0.2'};border-color:#ff8800;color:#ff8800;font-size:0.6rem;padding:1px 5px;" ${(GameState.workshop.upgrades[key]?.level||1)<=1?'disabled':''}>▼</button>` : ''}
-                          <button id="ws-btn-${key}" class="btn btn-sm ${can?'btn-primary':''}" style="opacity:${can?'1':'0.35'};" ${can?'':'disabled'}>UPGRADE</button>
+                          <button id="ws-btn-${key}" class="btn btn-sm ${can?'btn-primary':''}" style="opacity:${can?'1':'0.35'};" ${can?'':'disabled'}>${t('ws_upgrade')}</button>
                         </span>
                       </div>
                     </div>`;
@@ -227,9 +228,9 @@ export function createWorkshopScreen() {
                 </div>
               </div>
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-workshop','WORKSHOP')}
+                ${dept3DPanel('canvas-workshop', t('nav_workshop'))}
                 <div class="panel mini-stats">
-                  <div class="panel-title">POWER BUDGET</div>
+                  <div class="panel-title">${t('ws_power_budget')}</div>
                   <p>REACTOR<span id="ws-s-reactor">${GameState.reactor.powerGW.toFixed(1)} GW</span></p>
                   <p>WATER<span>-${GameState.water.powerDrawGW.toFixed(1)} GW</span></p>
                   <p>MINING<span>-${GameState.mining.powerDrawGW.toFixed(1)} GW</span></p>

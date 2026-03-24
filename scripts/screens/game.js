@@ -37,17 +37,17 @@ export function createGameScreen(manager, USERNAME_KEY) {
 
     // Nav icon state indicators
     const NAV_SCREENS = [
-        { key: 'status',           label: 'STATUS'   },
-        { key: 'reactorcore',      label: 'REACTOR'  },
-        { key: 'miningshaft',      label: 'MINING'   },
-        { key: 'orerefinery',      label: 'REFINERY' },
-        { key: 'watertreatment',   label: 'WATER'    },
-        { key: 'smartstorageunit', label: 'SSM'      },
-        { key: 'workshop',         label: 'WORKSHOP' },
-        { key: 'security',         label: 'SECURITY' },
-        { key: 'music',            label: 'MUSIC'    },
-        { key: 'credits',          label: 'CREDITS'  },
-        { key: 'settings',         label: 'SETTINGS' },
+        { key: 'status',           i18n: 'nav_status'           },
+        { key: 'reactorcore',      i18n: 'nav_reactorcore'      },
+        { key: 'miningshaft',      i18n: 'nav_miningshaft'      },
+        { key: 'orerefinery',      i18n: 'nav_orerefinery'      },
+        { key: 'watertreatment',   i18n: 'nav_watertreatment'   },
+        { key: 'smartstorageunit', i18n: 'nav_ssm'              },
+        { key: 'workshop',         i18n: 'nav_workshop'         },
+        { key: 'security',         i18n: 'nav_security'         },
+        { key: 'music',            i18n: 'nav_music'            },
+        { key: 'credits',          i18n: 'nav_credits'          },
+        { key: 'settings',         i18n: 'nav_settings'         },
     ];
 
     // Keyboard shortcuts: key → screen
@@ -115,10 +115,10 @@ export function createGameScreen(manager, USERNAME_KEY) {
     }
 
     function buildNavHTML() {
-        return NAV_SCREENS.map(({ key, label }) => `
+        return NAV_SCREENS.map(({ key, i18n }) => `
             <li style="position:relative;">
-                <a href="#" data-screen="${key}" style="display:flex;align-items:center;gap:5px;">
-                  <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${label}</span></a>
+                <a href="#" data-screen="${key}" data-i18n="${i18n}" style="display:flex;align-items:center;gap:5px;">
+                  <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${window.t(i18n)}</span></a>
                 <span class="nav-badge" id="nav-badge-${key}" style="display:none;"></span>
             </li>`).join('');
     }
@@ -202,13 +202,13 @@ export function createGameScreen(manager, USERNAME_KEY) {
                     </nav>
 
                     <div class="hud-bar">
-                        <div class="hud-item">TREASURY<span id="hud-cash">${GameState.formatCash(GameState.cash)}</span></div>
-                        <div class="hud-item">POWER<span id="hud-power">${(GameState.reactor.powerGW * GameState.reactor.efficiency).toFixed(2)} GW</span></div>
+                        <div class="hud-item"><span class="hud-lbl" data-i18n="hud_treasury">${window.t('hud_treasury')}</span><span id="hud-cash">${GameState.formatCash(GameState.cash)}</span></div>
+                        <div class="hud-item"><span class="hud-lbl" data-i18n="hud_power">${window.t('hud_power')}</span><span id="hud-power">${(GameState.reactor.powerGW * GameState.reactor.efficiency).toFixed(2)} GW</span></div>
                         <div class="hud-item">
-                            TEMP
+                            <span class="hud-lbl" data-i18n="hud_temp">${window.t('hud_temp')}</span>
                             <span id="hud-temp" class="hud-temp-val">${GameState.reactor.temperature}°C</span><span class="hud-temp-bar-wrap"><span id="hud-temp-bar" class="hud-temp-bar"></span></span>
                         </div>
-                        <div class="hud-item" id="hud-sec">SEC<span>NOMINAL</span></div>
+                        <div class="hud-item" id="hud-sec"><span class="hud-lbl" data-i18n="hud_sec">${window.t('hud_sec')}</span><span>NOMINAL</span></div>
                         <div class="hud-item hud-osc"><canvas id="hud-oscilloscope"></canvas></div>
                     </div>
 
@@ -217,7 +217,7 @@ export function createGameScreen(manager, USERNAME_KEY) {
                     <div class="event-log-bar" id="hud-log-wrap">
                         <div class="log-header" id="log-toggle">
                             <span class="log-unread-dot" id="log-unread"></span>
-                            <span class="log-header-label">// EVENT LOG</span>
+                            <span class="log-header-label" data-i18n="hud_log">${window.t('hud_log')}</span>
                             <span class="log-toggle-arrow">▲</span>
                         </div>
                         <div class="log-body">
@@ -251,7 +251,23 @@ export function createGameScreen(manager, USERNAME_KEY) {
 
             const contentContainer = document.getElementById('game-content');
             navManager = new GameNavManager(contentContainer, screens, 'status');
-            window._navManager = navManager; // exposed for vault map + other screens
+            window._navManager = navManager;
+
+            // Language refresh — updates nav + HUD labels in-place, then re-renders current dept
+            window._langRefresh = () => {
+                document.querySelectorAll('.nav-list a[data-i18n]').forEach(a => {
+                    const lbl = a.querySelector('.nav-label');
+                    if (lbl) lbl.textContent = window.t(a.dataset.i18n);
+                });
+                document.querySelectorAll('.hud-lbl[data-i18n]').forEach(el => {
+                    el.textContent = window.t(el.dataset.i18n);
+                });
+                document.querySelectorAll('[data-i18n].log-header-label').forEach(el => {
+                    el.textContent = window.t(el.dataset.i18n);
+                });
+                const activeDept = document.querySelector('.nav-list a.active')?.dataset?.screen || 'status';
+                navManager?.navigateTo(activeDept);
+            };
 
             document.querySelectorAll('.nav-list a').forEach(link => {
                 link.addEventListener('click', e => { e.preventDefault(); navManager.navigateTo(link.dataset.screen); });

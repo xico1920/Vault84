@@ -1,6 +1,7 @@
 import { SE } from '../../core/SoundEngine.js';
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
+const tr = k => window.t?.(k) ?? k;
 
 export function createSmartStorageUnitScreen() {
     let viewer3d=null, tickFn=null, priceFn=null;
@@ -50,13 +51,13 @@ export function createSmartStorageUnitScreen() {
             <div class="dept-layout">
               <div class="dept-main">
                 <h1>SSM</h1>
-                <h2>SMART STORAGE MANAGEMENT</h2>
+                <h2>${tr('ssm_h2')}</h2>
                 <div class="panel">
-                  <div class="panel-title">TREASURY</div>
+                  <div class="panel-title">${tr('st_treasury')}</div>
                   <div style="font-size:2.4rem;color:#14fdce;" id="ssm-cash">${GameState.formatCash(GameState.cash)}</div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">INVENTORY</div>
+                  <div class="panel-title">${tr('ssm_inventory')}</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.5rem;">
                     <div>
                       <div class="label">RAW ORES</div>
@@ -72,17 +73,17 @@ export function createSmartStorageUnitScreen() {
                     </div>
                   </div>
                   <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                    <button id="ssm-sell-both" class="btn btn-primary" style="font-size:1rem;letter-spacing:2px;padding:6px 16px;">SELL ALL</button>
-                    <button id="ssm-sell-raw" class="btn" style="font-size:0.9rem;padding:6px 12px;">SELL RAW</button>
-                    <button id="ssm-sell-ref" class="btn" style="font-size:0.9rem;padding:6px 12px;">SELL REFINED</button>
+                    <button id="ssm-sell-both" class="btn btn-primary" style="font-size:1rem;letter-spacing:2px;padding:6px 16px;">${tr('ssm_sell_all')}</button>
+                    <button id="ssm-sell-raw" class="btn" style="font-size:0.9rem;padding:6px 12px;">${tr('ssm_sell_raw')}</button>
+                    <button id="ssm-sell-ref" class="btn" style="font-size:0.9rem;padding:6px 12px;">${tr('ssm_sell_refined')}</button>
                   </div>
                   <span id="ssm-fb" style="display:block;height:1.2rem;font-size:0.9rem;color:#14fdce;margin-top:4px;"></span>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">AUTO-SELL</div>
+                  <div class="panel-title">${tr('ssm_autosell')}</div>
                   <div class="stat-row" style="margin-bottom:0.4rem;"><span class="key">STATUS</span><span class="val" id="ssm-auto" style="color:${s.autoSell?'#14fdce':'#3d9970'}">${s.autoSell?'ENABLED':'DISABLED'}</span></div>
                   <button id="ssm-atog" class="btn btn-sm" style="margin-bottom:0.8rem;">${s.autoSell?'DISABLE':'ENABLE'} AUTO-SELL</button>
-                  <div class="label" style="margin-bottom:0.4rem;">SELL TARGET</div>
+                  <div class="label" style="margin-bottom:0.4rem;">${tr('ssm_sell_target')}</div>
                   <div class="btn-group" style="flex-wrap:wrap;gap:4px;">
                     ${mBtn('ssm-st-both','BOTH',s.sellTarget==='both')}
                     ${mBtn('ssm-st-raw','RAW ONLY',s.sellTarget==='raw')}
@@ -93,9 +94,9 @@ export function createSmartStorageUnitScreen() {
                 </div>
               </div>
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-ssm','SMART STORAGE')}
+                ${dept3DPanel('canvas-ssm', tr('ssm_h2'))}
                 <div class="panel mini-stats">
-                  <div class="panel-title">MARKET</div>
+                  <div class="panel-title">${tr('ssm_market')}</div>
                   <p>BASE RAW<span>2.0$</span></p>
                   <p>BASE REF<span>8.0$</span></p>
                   <p>VARIANCE<span>+/- 20%</span></p>

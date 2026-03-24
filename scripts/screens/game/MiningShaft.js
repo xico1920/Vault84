@@ -2,6 +2,7 @@ import { SE } from '../../core/SoundEngine.js';
 import { GameState } from '../../core/GameState.js';
 import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 import { mountMiningVisualizer } from '../../core/VisualEngine.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createMiningShaftScreen() {
     let viewer3d = null, tickFn = null, cooldown = false, visualizer = null;
@@ -15,7 +16,7 @@ export function createMiningShaftScreen() {
         const tot=$('ms-tot');  if(tot)tot.textContent=Math.floor(m.totalMined);
         const rt=$('ms-rate');  if(rt)rt.textContent=`${m.ratePerTick.toFixed(2)}/s`;
         const btn=$('ms-mine'); if(btn){const ok=!cooldown&&r.efficiency>0&&m.online;btn.disabled=!ok;btn.style.opacity=ok?'1':'0.35';}
-        const tog=$('ms-toggle'); if(tog){tog.textContent=m.online?'SHUT DOWN':'START MINING';tog.className=`btn ${m.online?'btn-danger':''}`; }
+        const tog=$('ms-toggle'); if(tog){tog.textContent=m.online?t('ms_shutdown'):t('ms_start');tog.className=`btn ${m.online?'btn-danger':''}`; }
     }
 
     return {
@@ -24,22 +25,22 @@ export function createMiningShaftScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>MINING SHAFT</h1>
+                <h1>${t('ms_h1')}</h1>
                 <h2>EXTRACTION LEVEL ${m.upgradeLevel}</h2>
                 <div class="panel">
-                  <div class="panel-title">SHAFT STATUS</div>
+                  <div class="panel-title">${t('ms_shaft_status')}</div>
                   <div class="stat-row"><span class="key">STATUS</span><span class="val" id="ms-status" style="color:${on?'#14fdce':'#ff2222'}">${on?'ACTIVE':'OFFLINE'}</span></div>
                   <div class="stat-row"><span class="key">REACTOR EFF.</span><span class="val" id="ms-eff">${Math.round(r.efficiency*100)}%</span></div>
                   <div class="stat-row"><span class="key">AUTO-MINE RATE</span><span class="val" id="ms-rate">${m.ratePerTick.toFixed(2)}/s</span></div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">INVENTORY</div>
+                  <div class="panel-title">${t('ms_inventory')}</div>
                   <div class="stat-row"><span class="key">RAW ORES</span><span class="val value-ore" id="ms-raw">${Math.floor(m.rawOres)}</span></div>
                   <div class="stat-row"><span class="key">TOTAL MINED</span><span class="val value-dim" id="ms-tot">${Math.floor(m.totalMined)}</span></div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">MANUAL EXTRACTION</div>
-                  <p class="label" style="margin-bottom:0.75rem;">Each press yields bonus ores scaled by reactor output and shaft level.</p>
+                  <div class="panel-title">${t('ms_manual')}</div>
+                  <p class="label" style="margin-bottom:0.75rem;">${t('ms_manual_desc')}</p>
                   <button id="ms-mine" class="btn btn-primary" style="width:100%;max-width:240px;padding:10px;font-size:1.6rem;letter-spacing:4px;">[ MINE ]</button>
                   <div id="ms-fb" style="height:1.4rem;margin-top:6px;font-size:1rem;color:#14fdce;"></div>
                 </div>
@@ -49,17 +50,17 @@ export function createMiningShaftScreen() {
                   <div>> Upgrade shaft in Workshop for higher yield</div>
                 </div>
                 <button id="ms-toggle" class="btn ${GameState.mining.online?'btn-danger':''}" style="width:100%;max-width:260px;padding:8px;font-size:1.1rem;letter-spacing:3px;margin-top:0.3rem;">
-                  ${GameState.mining.online?'SHUT DOWN':'START MINING'}
+                  ${GameState.mining.online?t('ms_shutdown'):t('ms_start')}
                 </button>
               </div>
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-mining','MINING SHAFT')}
+                ${dept3DPanel('canvas-mining', t('ms_h1'))}
                 <div class="panel" style="padding:0;overflow:hidden;">
-                  <div class="panel-title" style="padding:4px 8px;">// LIVE SHAFT FEED</div>
+                  <div class="panel-title" style="padding:4px 8px;">${t('ms_live_feed')}</div>
                   <canvas id="canvas-mining-vis" style="display:block;width:100%;"></canvas>
                 </div>
                 <div class="panel mini-stats">
-                  <div class="panel-title">TELEMETRY</div>
+                  <div class="panel-title">${t('ms_telemetry')}</div>
                   <p>DEPTH<span>${m.upgradeLevel * 150}m</span></p>
                   <p>DRILLS<span>${m.upgradeLevel}</span></p>
                   <p>PWR DRAW<span>${(m.upgradeLevel*0.2).toFixed(1)} GW</span></p>

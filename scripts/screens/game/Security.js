@@ -4,6 +4,7 @@ import { mountDeptModel, dept3DPanel } from '../../core/DeptLayout.js';
 import { SE } from '../../core/SoundEngine.js';
 import { virusMinigame, breachMinigame, malwareMinigame } from '../../core/SecurityMinigames.js';
 import { getCameras, mountCameraFeed } from '../../core/CameraSystem.js';
+const tr = k => window.t?.(k) ?? k;
 
 export function createSecurityScreen() {
     let viewer3d=null, tickFn=null, threatFn=null;
@@ -175,8 +176,8 @@ export function createSecurityScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>SECURITY</h1>
-                <h2>VAULT DEFENSE SYSTEM</h2>
+                <h1>${tr('nav_security')}</h1>
+                <h2>${tr('sec_h2')}</h2>
 
                 <!-- Camera + Threat Activity side by side -->
                 <div class="sec-split" style="display:flex;gap:0.75rem;align-items:flex-start;">
@@ -202,7 +203,7 @@ export function createSecurityScreen() {
 
                     <div class="panel">
                       <div class="panel-title" style="display:flex;justify-content:space-between;">
-                        <span>THREAT ACTIVITY</span>
+                        <span>${tr('sec_threats')}</span>
                         <span class="label" style="font-size:0.65rem;">ACTIVE: <span id="sec-cnt" style="color:${GameState.security.threats.length>0?'#ff2222':'#14fdce'};">${GameState.security.threats.length}</span> &nbsp; NEXT: <span id="sec-next">--</span></span>
                       </div>
                       <div id="sec-threats"></div>
@@ -221,9 +222,9 @@ export function createSecurityScreen() {
               </div>
 
               <div class="dept-sidebar">
-                ${dept3DPanel('canvas-security','SECURITY')}
+                ${dept3DPanel('canvas-security', tr('nav_security'))}
                 <div class="panel mini-stats">
-                  <div class="panel-title">MAINTENANCE</div>
+                  <div class="panel-title">${tr('sec_maintenance')}</div>
                   <div id="sec-repair"></div>
                 </div>
                 <div class="panel mini-stats">

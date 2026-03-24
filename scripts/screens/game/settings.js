@@ -3,6 +3,7 @@ import { showTutorial } from '../../core/TutorialOverlay.js';
 import { exportSave, importSave, getLeaderboard } from '../../core/SaveSystem.js';
 import { GameState } from '../../core/GameState.js';
 import { SE } from '../../core/SoundEngine.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createSettingsScreen(USERNAME_KEY, audio) {
     let viewer3d=null;
@@ -10,6 +11,7 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
         async render() {
             const vol=audio?.sounds?.bg?Math.round((audio.sounds.bg.volume||0.1)*100):10;
             const sfxVol = Math.round((SE._vol || 0.18) * 100);
+            const curLang = window.getLang?.() || localStorage.getItem('vault84_lang') || 'EN';
             const board = getLeaderboard();
             const diffs = ['EASY', 'STANDARD', 'HARD', 'NIGHTMARE'];
             const diffColors = { EASY:'#14fdce', STANDARD:'#d4e800', HARD:'#ff8800', NIGHTMARE:'#ff2222' };
@@ -28,49 +30,57 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>SETTINGS</h1>
-                <h2>SYSTEM CONFIGURATION</h2>
+                <h1>${t('set_title')}</h1>
+                <h2>${t('set_sub')}</h2>
 
                 <div class="panel">
-                  <div class="panel-title">AUDIO</div>
+                  <div class="panel-title">${t('set_language')}</div>
+                  <div style="display:flex;gap:4px;">
+                    <button id="set-lang-pt" class="btn btn-sm" style="letter-spacing:3px;padding:4px 16px;${curLang==='PT'?'background:#14fdce;color:#020f07;border-color:#14fdce;':''}">PT</button>
+                    <button id="set-lang-en" class="btn btn-sm" style="letter-spacing:3px;padding:4px 16px;${curLang==='EN'?'background:#14fdce;color:#020f07;border-color:#14fdce;':''}">EN</button>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-title">${t('set_audio')}</div>
                   <div class="stat-row" style="margin-bottom:0.5rem;">
-                    <span class="key" style="min-width:160px;">BACKGROUND MUSIC</span>
+                    <span class="key" style="min-width:160px;">${t('set_bg_music')}</span>
                     <input id="set-bgvol" type="range" min="0" max="100" value="${vol}" style="flex:1;accent-color:#14fdce;margin:0 0.75rem;">
                     <span class="val" id="set-bgvol-lbl">${vol}%</span>
                   </div>
                   <div class="stat-row">
-                    <span class="key" style="min-width:160px;">SOUND EFFECTS</span>
+                    <span class="key" style="min-width:160px;">${t('set_sfx')}</span>
                     <input id="set-sfxvol" type="range" min="0" max="100" value="${sfxVol}" style="flex:1;accent-color:#14fdce;margin:0 0.75rem;">
                     <span class="val" id="set-sfxvol-lbl">${sfxVol}%</span>
                   </div>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">GENERAL</div>
-                  <p class="label" style="margin-bottom:0.75rem;">Game saves automatically every 30 seconds.</p>
-                  <button id="set-lore" class="btn" style="padding:7px 20px;letter-spacing:2px;display:block;margin-bottom:6px;">VIEW LORE</button>
-                  <button id="set-tutorial" class="btn" style="padding:7px 20px;letter-spacing:2px;display:block;margin-bottom:6px;">VIEW TUTORIAL AGAIN</button>
-                  <button id="set-clear" class="btn btn-danger" style="padding:7px 20px;letter-spacing:2px;display:block;">WIPE ALL DATA &amp; RESTART</button>
+                  <div class="panel-title">${t('set_general')}</div>
+                  <p class="label" style="margin-bottom:0.75rem;">${t('set_autosave')}</p>
+                  <button id="set-lore" class="btn" style="padding:7px 20px;letter-spacing:2px;display:block;margin-bottom:6px;">${t('set_lore_btn')}</button>
+                  <button id="set-tutorial" class="btn" style="padding:7px 20px;letter-spacing:2px;display:block;margin-bottom:6px;">${t('set_tutorial_btn')}</button>
+                  <button id="set-clear" class="btn btn-danger" style="padding:7px 20px;letter-spacing:2px;display:block;">${t('set_clear_btn')}</button>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">SAVE DATA</div>
-                  <p class="label" style="margin-bottom:0.75rem;">Export your save as a JSON file, or import a previously exported save.</p>
+                  <div class="panel-title">${t('set_save_data')}</div>
+                  <p class="label" style="margin-bottom:0.75rem;">${t('set_save_desc')}</p>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <button id="set-export" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#14fdce;color:#14fdce;">EXPORT SAVE</button>
-                    <button id="set-import-btn" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#5ecba8;color:#5ecba8;">IMPORT SAVE</button>
+                    <button id="set-export" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#14fdce;color:#14fdce;">${t('set_export_btn')}</button>
+                    <button id="set-import-btn" class="btn" style="padding:7px 18px;letter-spacing:2px;border-color:#5ecba8;color:#5ecba8;">${t('set_import_btn')}</button>
                     <input id="set-import-file" type="file" accept=".json" style="display:none;">
                   </div>
                   <div id="set-import-status" style="margin-top:6px;font-size:0.65rem;color:#3d9970;min-height:14px;"></div>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">// BEST RUNS</div>
+                  <div class="panel-title">${t('set_best_runs')}</div>
                   <div style="margin-top:0.4rem;">${leaderboardHTML}</div>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">ABOUT</div>
+                  <div class="panel-title">${t('set_about')}</div>
                   <p class="label">VAULT 84 -- VOLTEC SYSTEMS</p>
                   <p class="label">BUILD 0.2.0</p>
                 </div>
@@ -79,7 +89,7 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
               <div class="dept-sidebar">
                 ${dept3DPanel('canvas-settings','SETTINGS')}
                 <div class="panel mini-stats">
-                  <div class="panel-title">KEYBOARD SHORTCUTS</div>
+                  <div class="panel-title">${t('set_shortcuts')}</div>
                   <div style="font-size:0.62rem;color:#3d9970;line-height:1.8;">
                     <div><span style="color:#14fdce;">1</span> STATUS &nbsp;<span style="color:#14fdce;">2</span> REACTOR</div>
                     <div><span style="color:#14fdce;">3</span> MINING &nbsp;<span style="color:#14fdce;">4</span> REFINERY</div>
@@ -90,7 +100,7 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
                   </div>
                 </div>
                 <div class="panel mini-stats">
-                  <div class="panel-title">SYSTEM</div>
+                  <div class="panel-title">${t('set_system')}</div>
                   <p>OVERSEER<span style="color:#14fdce;">ACTIVE</span></p>
                   <p>SESSION<span>TEMP</span></p>
                 </div>
@@ -99,6 +109,18 @@ export function createSettingsScreen(USERNAME_KEY, audio) {
         },
 
         async onRendered() {
+            // ── Language buttons ──────────────────────────────────
+            ['pt','en'].forEach(lang => {
+                document.getElementById(`set-lang-${lang}`)?.addEventListener('click', () => {
+                    const newLang = lang.toUpperCase();
+                    if ((window.getLang?.() || localStorage.getItem('vault84_lang') || 'EN') === newLang) return;
+                    localStorage.setItem('vault84_lang', newLang);
+                    if (window._setLang) window._setLang(newLang);
+                    if (window._applyLangUI) window._applyLangUI(newLang);
+                    if (window._playLangGlitch) window._playLangGlitch();
+                });
+            });
+
             document.getElementById('set-bgvol')?.addEventListener('input',e=>{
                 if(audio?.sounds?.bg)audio.setVolume('bg',e.target.value/100);
                 const l=document.getElementById('set-bgvol-lbl');if(l)l.textContent=`${e.target.value}%`;

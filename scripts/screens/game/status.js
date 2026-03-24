@@ -4,6 +4,7 @@ import { mountVaultMap } from '../../core/VisualEngine.js';
 import { ACHIEVEMENTS } from '../../core/AchievementSystem.js';
 import { LORE_ENTRIES, LORE_TYPE_COLORS } from '../../core/LoreData.js';
 import { getLeaderboard } from '../../core/SaveSystem.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createStatusScreen() {
     let viewer3d = null, vaultMap = null, tickFn = null;
@@ -155,34 +156,34 @@ export function createStatusScreen() {
             return `
             <div class="dept-layout">
               <div class="dept-main">
-                <h1>STATUS</h1>
-                <h2>VAULT 84 OPERATIONS OVERVIEW</h2>
+                <h1>${t('st_title')}</h1>
+                <h2>${t('st_sub')}</h2>
                 <div class="panel">
-                  <div class="panel-title">TREASURY</div>
+                  <div class="panel-title">${t('st_treasury')}</div>
                   <div style="font-size:2.2rem;color:#14fdce;" id="st-cash">${GameState.formatCash(GameState.cash)}</div>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">POWER GRID</div>
+                  <div class="panel-title">${t('st_power_grid')}</div>
                   <div class="bar-track"><div class="bar-fill" id="st-pbar" style="width:${r.efficiency*100}%;"></div></div>
-                  <div class="stat-row"><span class="key">OUTPUT</span><span class="val" id="st-pw">${(r.powerGW*r.efficiency).toFixed(2)} GW</span></div>
+                  <div class="stat-row"><span class="key">${t('st_output')}</span><span class="val" id="st-pw">${(r.powerGW*r.efficiency).toFixed(2)} GW</span></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.6rem;">
-                  <div class="panel" style="margin:0;"><div class="panel-title">REACTOR</div><div id="st-rs">${d2(r.online)} ${r.status}</div><div class="label">TEMP: <span id="st-rt">${r.temperature}C</span></div></div>
-                  <div class="panel" style="margin:0;"><div class="panel-title">MINING</div><div id="st-ms">${d2(m.online&&r.efficiency>0)} ${m.online&&r.efficiency>0?'ACTIVE':'OFFLINE'}</div><div class="label"><span id="st-mr">${m.ratePerTick.toFixed(2)}/s</span> | RAW: <span id="st-mw">${Math.floor(m.rawOres)}</span></div></div>
-                  <div class="panel" style="margin:0;"><div class="panel-title">REFINERY</div><div id="st-rfs">${d2(ref.online&&ref.efficiency>0)} ${ref.online&&ref.efficiency>0?'OPERATIONAL':'OFFLINE'}</div><div class="label">REFINED: <span id="st-rfr">${Math.floor(ref.refinedOres)}</span></div></div>
-                  <div class="panel" style="margin:0;"><div class="panel-title">WATER</div><div id="st-ws">${d2(w.pumpOnline)} ${w.pumpOnline?'ONLINE':'OFFLINE'}</div></div>
-                  <div class="panel" style="margin:0;"><div class="panel-title">SECURITY</div><div>THREATS: <span id="st-sc" style="color:${sec.threats.length?'#ff2222':'#14fdce'}">${sec.threats.length}</span></div></div>
-                  <div class="panel" style="margin:0;"><div class="panel-title">SSM</div><div>AUTO-SELL: <span style="color:${GameState.ssm.autoSell?'#14fdce':'#3d9970'}">${GameState.ssm.autoSell?'ON':'OFF'}</span></div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_reactor')}</div><div id="st-rs">${d2(r.online)} ${r.status}</div><div class="label">TEMP: <span id="st-rt">${r.temperature}C</span></div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_mining')}</div><div id="st-ms">${d2(m.online&&r.efficiency>0)} ${m.online&&r.efficiency>0?'ACTIVE':'OFFLINE'}</div><div class="label"><span id="st-mr">${m.ratePerTick.toFixed(2)}/s</span> | RAW: <span id="st-mw">${Math.floor(m.rawOres)}</span></div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_refinery')}</div><div id="st-rfs">${d2(ref.online&&ref.efficiency>0)} ${ref.online&&ref.efficiency>0?'OPERATIONAL':'OFFLINE'}</div><div class="label">REFINED: <span id="st-rfr">${Math.floor(ref.refinedOres)}</span></div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_water')}</div><div id="st-ws">${d2(w.pumpOnline)} ${w.pumpOnline?'ONLINE':'OFFLINE'}</div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_security')}</div><div>THREATS: <span id="st-sc" style="color:${sec.threats.length?'#ff2222':'#14fdce'}">${sec.threats.length}</span></div></div>
+                  <div class="panel" style="margin:0;"><div class="panel-title">${t('st_ssm')}</div><div>AUTO-SELL: <span style="color:${GameState.ssm.autoSell?'#14fdce':'#3d9970'}">${GameState.ssm.autoSell?'ON':'OFF'}</span></div></div>
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title">// ACHIEVEMENTS <span id="st-ach-count" class="label" style="float:right;font-size:0.7rem;"></span></div>
+                  <div class="panel-title">${t('st_achievements')} <span id="st-ach-count" class="label" style="float:right;font-size:0.7rem;"></span></div>
                   <div id="st-achievements" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-top:0.4rem;"></div>
                 </div>
 
                 <div class="panel" style="padding:0;overflow:hidden;">
                   <div style="padding:5px 10px;border-bottom:1px solid #0d2a18;background:rgba(0,0,0,0.3);">
-                    <div style="font-family:'VT323',monospace;color:#14fdce;font-size:0.75rem;letter-spacing:3px;margin-bottom:5px;">// TERMINAL ARCHIVE</div>
+                    <div style="font-family:'VT323',monospace;color:#14fdce;font-size:0.75rem;letter-spacing:3px;margin-bottom:5px;">${t('st_terminal')}</div>
                     <div style="display:flex;gap:4px;">
                       ${filterBtn('ALL','ALL')}
                       ${filterBtn('HISTORY','HISTORY')}
@@ -197,19 +198,19 @@ export function createStatusScreen() {
               <div class="dept-sidebar">
                 ${dept3DPanel('canvas-status','VAULT 84')}
                 <div class="panel" style="padding:0;overflow:hidden;">
-                  <div class="panel-title" style="padding:4px 8px;">// FACILITY MAP <span style="color:#1a5a35;font-size:0.55rem;float:right;">CLICK TO NAVIGATE</span></div>
+                  <div class="panel-title" style="padding:4px 8px;">${t('st_facility_map')} <span style="color:#1a5a35;font-size:0.55rem;float:right;">${t('st_click_nav')}</span></div>
                   <canvas id="canvas-vault-map" style="display:block;width:100%;"></canvas>
                 </div>
                 <div class="panel">
-                  <div class="panel-title">ALERTS</div>
+                  <div class="panel-title">${t('st_alerts')}</div>
                   <div id="st-alerts"><div class="label">-- ALL SYSTEMS NOMINAL --</div></div>
                 </div>
                 <div class="panel mini-stats">
-                  <div class="panel-title">SESSION STATS</div>
+                  <div class="panel-title">${t('st_session')}</div>
                   <div id="st-session"></div>
                 </div>
                 <div class="panel mini-stats">
-                  <div class="panel-title">BEST RUNS</div>
+                  <div class="panel-title">${t('st_best_runs')}</div>
                   <div id="st-leaderboard"></div>
                 </div>
               </div>

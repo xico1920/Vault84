@@ -1,6 +1,7 @@
 // Music.js — Music player screen
 
 import { musicEngine } from '../../core/MusicEngine.js';
+const tr = k => window.t?.(k) ?? k;
 
 function fmt(s) {
     if (!isFinite(s)) return '--:--';
@@ -78,11 +79,11 @@ export function createMusicScreen() {
             return `
             <div class="dept-layout" style="grid-template-columns:1fr 200px;">
               <div class="dept-main">
-                <h1>MUSIC</h1>
-                <h2>VAULT 84 AUDIO SYSTEM</h2>
+                <h1>${tr('nav_music')}</h1>
+                <h2>${tr('mus_h2')}</h2>
 
                 <div class="panel" style="margin-bottom:0.75rem;">
-                  <div class="panel-title">// NOW PLAYING</div>
+                  <div class="panel-title">${tr('mus_now_playing')}</div>
                   <div id="mus-title" style="font-size:1.1rem;color:var(--hi);letter-spacing:2px;margin:0.35rem 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                     ${t ? t.label : '-- NO TRACK LOADED --'}
                   </div>
@@ -105,7 +106,7 @@ export function createMusicScreen() {
                 </div>
 
                 <div class="panel">
-                  <div class="panel-title" style="margin-bottom:0.4rem;">// TRACK LIST</div>
+                  <div class="panel-title" style="margin-bottom:0.4rem;">${tr('mus_tracklist')}</div>
                   <div id="mus-list"></div>
                 </div>
 

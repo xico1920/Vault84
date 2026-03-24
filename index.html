@@ -44,7 +44,12 @@
 
       <div class="ctrl-cluster ctrl-left">
         <button class="power-btn" id="power-btn" title="Power">
-          <span class="power-icon">&#9211;</span>
+          <span class="power-icon">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M10 3v7"/>
+              <path d="M6.2 5.2A7 7 0 1 0 13.8 5.2"/>
+            </svg>
+          </span>
         </button>
         <div class="led-stack">
           <div class="led led-power" id="led-power"></div>
@@ -61,11 +66,19 @@
       <div class="ctrl-cluster ctrl-right">
         <div class="dial-wrap" title="Drag up/down">
           <div class="dial" id="dial-brightness"><div class="dial-marker"></div></div>
-          <span class="dial-label">BRILHO</span>
+          <span class="dial-label" id="lbl-brightness">BRILHO</span>
         </div>
         <div class="dial-wrap" title="Drag up/down">
           <div class="dial" id="dial-contrast"><div class="dial-marker"></div></div>
-          <span class="dial-label">CONTRASTE</span>
+          <span class="dial-label" id="lbl-contrast">CONTRASTE</span>
+        </div>
+        <div class="lang-toggle-wrap">
+          <span class="lang-opt" id="lang-opt-pt">PT</span>
+          <label class="lang-switch" title="Language / Idioma">
+            <input type="checkbox" id="lang-input">
+            <span class="lang-rocker"><span class="lang-knob"></span></span>
+          </label>
+          <span class="lang-opt" id="lang-opt-en">EN</span>
         </div>
       </div>
 
@@ -215,6 +228,7 @@
           ledPower.classList.add('led-off');
           // Fade dial markers out
           document.querySelectorAll('.dial-marker').forEach(function(d){ d.style.opacity='0'; });
+          document.querySelectorAll('.lang-opt,.lang-knob').forEach(function(d){ d.style.opacity='0'; });
           if (window._SE) window._SE.powerOff();
           var cur = window._getCurrentScreen ? window._getCurrentScreen() : null;
           if (cur === 'boot') sessionStorage.setItem('vault84_boot_interrupted', '1');
@@ -229,6 +243,7 @@
           ledPower.classList.remove('led-off');
           // Fade dial markers back in
           document.querySelectorAll('.dial-marker').forEach(function(d){ d.style.opacity='1'; });
+          document.querySelectorAll('.lang-opt,.lang-knob').forEach(function(d){ d.style.opacity='1'; });
           if (window._SE) window._SE.powerOn();
           if (window._resumeGame) window._resumeGame();
           var gd = frame.querySelector('.game');
@@ -270,6 +285,109 @@
         setTimeout(netPulse, 2800+Math.random()*5000);
       }
       setTimeout(netPulse, 1500);
+
+      // ── Language toggle ───────────────────────────────────────────
+      var langInput  = document.getElementById('lang-input');
+      var langOptPt  = document.getElementById('lang-opt-pt');
+      var langOptEn  = document.getElementById('lang-opt-en');
+      var lblBri     = document.getElementById('lbl-brightness');
+      var lblCon     = document.getElementById('lbl-contrast');
+
+      var DIAL_LABELS = {
+        PT: { bri: 'BRILHO', con: 'CONTRASTE' },
+        EN: { bri: 'BRIGHTNESS', con: 'CONTRAST' }
+      };
+
+      function applyLangUI(lang) {
+        var isEn = lang === 'EN';
+        langInput.checked = isEn;
+        langOptPt.classList.toggle('lang-active', !isEn);
+        langOptEn.classList.toggle('lang-active',  isEn);
+        if (lblBri) lblBri.textContent = DIAL_LABELS[lang].bri;
+        if (lblCon) lblCon.textContent = DIAL_LABELS[lang].con;
+      }
+
+      // Init — always default to EN for first visit
+      var savedLang = localStorage.getItem('vault84_lang') || 'EN';
+      applyLangUI(savedLang);
+
+      // ── Per-element glitch transition ─────────────────────────────
+      function glitchEl(el, newText, delay) {
+        setTimeout(function() {
+          el.classList.add('lang-glitch');
+          // Update text at animation midpoint (~140ms into 280ms)
+          setTimeout(function() {
+            el.textContent = newText;
+          }, 140);
+          el.addEventListener('animationend', function() {
+            el.classList.remove('lang-glitch');
+          }, { once: true });
+        }, delay);
+      }
+
+      function playElementGlitch() {
+        var gameDiv = frame.querySelector('.game');
+        if (!gameDiv) return;
+
+        var items = [];
+
+        // Nav labels
+        gameDiv.querySelectorAll('.nav-list a[data-i18n]').forEach(function(a) {
+          var lbl = a.querySelector('.nav-label');
+          if (lbl && window.t) items.push({ el: lbl, text: window.t(a.dataset.i18n) });
+        });
+
+        // HUD labels and log header
+        gameDiv.querySelectorAll('.hud-lbl[data-i18n], [data-i18n].log-header-label').forEach(function(el) {
+          if (window.t) items.push({ el: el, text: window.t(el.dataset.i18n) });
+        });
+
+        if (!items.length) return;
+
+        // Shuffle for organic feel
+        for (var i = items.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+        }
+
+        var STAGGER = 30; // ms between each element
+
+        items.forEach(function(item, idx) {
+          glitchEl(item.el, item.text, idx * STAGGER);
+        });
+
+        // Re-render the active department content at the midpoint of the sequence
+        var deptAt = Math.round(items.length / 2) * STAGGER;
+        setTimeout(function() {
+          var content = document.getElementById('game-content');
+          if (content) {
+            content.style.opacity = '0';
+            content.style.transition = 'opacity 0.07s ease-out';
+          }
+          var activeDept = gameDiv.querySelector('.nav-list a.active');
+          var deptKey = activeDept ? activeDept.dataset.screen : 'status';
+          if (window._navManager) window._navManager.navigateTo(deptKey);
+          setTimeout(function() {
+            if (content) {
+              content.style.transition = 'opacity 0.18s ease-in';
+              content.style.opacity = '1';
+              setTimeout(function() { if (content) content.style.transition = ''; }, 200);
+            }
+          }, 80);
+        }, deptAt);
+      }
+
+      // Expose so the in-game settings screen can trigger a language change on mobile
+      window._applyLangUI    = applyLangUI;
+      window._playLangGlitch = playElementGlitch;
+
+      langInput.addEventListener('change', function() {
+        var newLang = langInput.checked ? 'EN' : 'PT';
+        applyLangUI(newLang);
+        localStorage.setItem('vault84_lang', newLang);
+        if (window._setLang) window._setLang(newLang);
+        playElementGlitch();
+      });
     });
   </script>
 

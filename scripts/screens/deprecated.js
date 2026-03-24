@@ -1,4 +1,5 @@
 import { deleteSave, BUILD_VERSION, getSaveVersion } from '../core/SaveSystem.js';
+const t = k => window.t?.(k) ?? k;
 
 export function createDeprecatedScreen(screenManager) {
     return {
@@ -18,29 +19,27 @@ export function createDeprecatedScreen(screenManager) {
                 </div>
 
                 <div style="font-family:'VT323',monospace;font-size:1.4rem;color:#ff8800;letter-spacing:4px;margin-bottom:2rem;">
-                  SAVE DATA DEPRECATED
+                  ${t('dep_title')}
                 </div>
 
                 <div style="border:1px solid #1a3a20;background:rgba(0,0,0,0.4);padding:1.2rem;margin-bottom:2rem;text-align:left;">
                   <div style="font-family:'VT323',monospace;font-size:0.82rem;color:#3d9970;line-height:2;letter-spacing:1px;">
                     <div style="display:flex;justify-content:space-between;">
-                      <span style="color:#1a5a35;">SAVE VERSION</span>
+                      <span style="color:#1a5a35;">${t('dep_save_ver')}</span>
                       <span style="color:#ff8800;">${oldVersion}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;">
-                      <span style="color:#1a5a35;">CURRENT BUILD</span>
+                      <span style="color:#1a5a35;">${t('dep_build')}</span>
                       <span style="color:#14fdce;">${BUILD_VERSION}</span>
                     </div>
                     <div style="border-top:1px solid #0d2a18;margin-top:0.75rem;padding-top:0.75rem;color:#3d9970;font-size:0.75rem;line-height:1.8;">
-                      The existing save file is incompatible with this version of Vault 84.
-                      Loading it may cause system instability or data corruption.
-                      A fresh deployment is required.
+                      ${t('dep_desc')}
                     </div>
                   </div>
                 </div>
 
                 <div style="font-family:'VT323',monospace;font-size:0.65rem;color:#1a4a2a;letter-spacing:2px;margin-bottom:1.5rem;">
-                  // OVERSEER AUTHORISATION REQUIRED TO PROCEED
+                  ${t('dep_auth')}
                 </div>
 
                 <button id="dep-new-game" style="
@@ -48,7 +47,7 @@ export function createDeprecatedScreen(screenManager) {
                   font-family:'VT323',monospace;font-size:1rem;letter-spacing:4px;
                   background:transparent;border:1px solid #14fdce;color:#14fdce;
                   cursor:pointer;transition:background 0.15s;
-                ">[ WIPE SAVE &amp; BEGIN NEW DEPLOYMENT ]</button>
+                ">${t('dep_btn')}</button>
 
               </div>
             </div>`;
