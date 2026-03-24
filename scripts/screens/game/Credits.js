@@ -36,6 +36,8 @@ export function createCreditsScreen() {
         render() {
             return `
             <style>
+              .cred-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; height:100%; padding-top:0.5rem; }
+              @media (max-width:540px) { .cred-grid { grid-template-columns:1fr; height:auto; } }
               .cred-name {
                 font-size:1.3rem;color:var(--hi);letter-spacing:2px;line-height:1.1;cursor:default;font-family:var(--font);
               }
@@ -68,7 +70,7 @@ export function createCreditsScreen() {
                 100% { filter:brightness(1);   transform:translateX(0);    }
               }
             </style>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;height:100%;padding-top:0.5rem;">
+            <div class="cred-grid">
 
               ${DEVS.map(dev => `
               <div style="border:1px solid var(--muted);background:rgba(20,253,206,0.02);display:flex;flex-direction:column;">

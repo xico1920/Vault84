@@ -171,12 +171,14 @@ export function createMusicScreen() {
                 refreshList();
             });
 
+            musicEngine.onChange(refreshList);
             refreshList();
             rafId = setInterval(updateUI, 300);
         },
 
         onExit() {
             if (rafId) { clearInterval(rafId); rafId = null; }
+            musicEngine.onChange(null);
         }
     };
 }
