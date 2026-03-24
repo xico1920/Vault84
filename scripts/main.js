@@ -1,7 +1,7 @@
 import { SE } from './core/SoundEngine.js';
 import { pauseGameLoop, resumeGameLoop, isGamePaused, loadGame } from './core/GameLoop.js';
 import { GameState } from './core/GameState.js';
-import { deleteSave, hasSave } from './core/SaveSystem.js';
+import { deleteSave, hasSave, isSaveOutdated } from './core/SaveSystem.js';
 import { AudioManager } from './core/audioManager.js';
 import { ScreenManager } from './core/screenManager.js';
 import { createStartScreen } from './screens/start.js';
@@ -11,6 +11,7 @@ import { createDifficultyScreen } from './screens/difficulty.js';
 import { createAuthScreen } from './screens/auth.js';
 import { createWelcomeScreen } from './screens/welcome.js';
 import { createGameScreen } from './screens/game.js';
+import { createDeprecatedScreen } from './screens/deprecated.js';
 
 window._SE = SE;
 window._pauseGame    = pauseGameLoop;
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     screenManager.registerScreen('auth',       createAuthScreen(screenManager, USERNAME_KEY));
     screenManager.registerScreen('welcome',    createWelcomeScreen(screenManager));
     screenManager.registerScreen('game',       createGameScreen(screenManager, USERNAME_KEY));
+    screenManager.registerScreen('deprecated', createDeprecatedScreen(screenManager));
 
     window._getCurrentScreen = () => screenManager.currentScreenName || null;
 
@@ -60,5 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const savedUsername = localStorage.getItem(USERNAME_KEY);
-    screenManager.navigateTo('start', savedUsername);
+
+    if (isSaveOutdated()) {
+        screenManager.navigateTo('deprecated');
+    } else {
+        screenManager.navigateTo('start', savedUsername);
+    }
 });

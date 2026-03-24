@@ -3,6 +3,8 @@
 const SAVE_KEY        = 'vault84_save_v1';
 const LEADERBOARD_KEY = 'vault84_leaderboard_v1';
 
+export const BUILD_VERSION = '0.2.0';
+
 const SAVE_FIELDS = {
     cash:    v => v.cash,
     reactor: v => ({
@@ -54,7 +56,7 @@ const SAVE_FIELDS = {
 
 export function saveGame(GameState) {
     try {
-        const data = { savedAt: Date.now(), difficulty: GameState.difficulty, achievements: GameState.achievements || [] };
+        const data = { savedAt: Date.now(), buildVersion: BUILD_VERSION, difficulty: GameState.difficulty, achievements: GameState.achievements || [] };
         for (const [key, fn] of Object.entries(SAVE_FIELDS)) {
             data[key] = fn(GameState);
         }
@@ -125,6 +127,23 @@ export function deleteSave() {
 
 export function hasSave() {
     return !!localStorage.getItem(SAVE_KEY);
+}
+
+export function isSaveOutdated() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        return !data.buildVersion || data.buildVersion !== BUILD_VERSION;
+    } catch(e) { return false; }
+}
+
+export function getSaveVersion() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw).buildVersion || 'unknown';
+    } catch(e) { return null; }
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────
