@@ -789,12 +789,12 @@ input[type="range"] { accent-color: var(--hi); }
 #tutorial-overlay {
   position: fixed; inset: 0; z-index: 999;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0); backdrop-filter: blur(0px);
-  transition: background 0.4s ease, backdrop-filter 0.4s ease;
+  background: rgba(0,0,0,0);
+  transition: background 0.4s ease;
   pointer-events: none; padding: 1rem;
 }
-#tutorial-overlay.tut-visible  { background: rgba(0,0,0,0.78); backdrop-filter: blur(4px); pointer-events: all; }
-#tutorial-overlay.tut-hiding   { background: rgba(0,0,0,0);    backdrop-filter: blur(0px); pointer-events: none; }
+#tutorial-overlay.tut-visible  { background: rgba(0,0,0,0.88); pointer-events: all; }
+#tutorial-overlay.tut-hiding   { background: rgba(0,0,0,0);    pointer-events: none; }
 
 .tut-paper {
   position: relative;
