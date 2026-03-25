@@ -33,20 +33,70 @@
 <body class="noisy">
 
   <!-- ── In-app browser warning ──────────────────────────────────────── -->
-  <div id="inapp-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#020f07;border-bottom:1px solid #14fdce;padding:10px 14px;font-family:monospace;font-size:0.78rem;color:#14fdce;letter-spacing:1px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <span style="color:#ff8800;">⚠</span>
-    <span style="flex:1;">VAULT 84 requires a full browser. <strong>Open in Chrome / Safari</strong> for the best experience.</span>
-    <button onclick="this.parentElement.style.display='none'" style="background:transparent;border:1px solid #3d9970;color:#3d9970;padding:2px 8px;cursor:pointer;font-family:monospace;font-size:0.72rem;letter-spacing:1px;">DISMISS</button>
+  <div id="inapp-banner" style="display:none;position:fixed;inset:0;z-index:99999;background:#020f07;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;font-family:monospace;text-align:center;">
+    <div style="color:#ff8800;font-size:1.4rem;">⚠</div>
+    <div style="color:#14fdce;font-size:0.95rem;letter-spacing:3px;">RESTRICTED BROWSER DETECTED</div>
+    <div style="color:#3d9970;font-size:0.72rem;letter-spacing:1px;max-width:300px;line-height:1.7;">
+      VAULT 84 cannot run inside the LinkedIn in-app browser.<br>
+      Open it in <strong style="color:#14fdce;">Chrome</strong> or <strong style="color:#14fdce;">Safari</strong> for full support.
+    </div>
+    <a id="inapp-open-btn" href="#" style="display:inline-block;margin-top:0.5rem;padding:8px 22px;border:1px solid #14fdce;color:#14fdce;font-family:monospace;font-size:0.8rem;letter-spacing:2px;text-decoration:none;">↗ OPEN IN BROWSER</a>
+    <button onclick="document.getElementById('inapp-banner').style.display='none'" style="background:transparent;border:none;color:#1a4a2a;font-family:monospace;font-size:0.65rem;letter-spacing:1px;cursor:pointer;margin-top:0.25rem;">ignore &amp; try anyway</button>
   </div>
   <script>
     (function(){
       var ua = navigator.userAgent || '';
-      var inApp = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
-               || (/Android/.test(ua) && /wv/.test(ua));
-      if (inApp) {
-        var b = document.getElementById('inapp-banner');
-        if (b) b.style.display = 'flex';
+      var isAndroid = /Android/i.test(ua);
+      var isIOS     = /iPhone|iPad|iPod/i.test(ua);
+      var inApp     = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
+                   || (isAndroid && /wv/.test(ua));
+      if (!inApp) return;
+
+      var pageUrl = location.href;
+      var btn = document.getElementById('inapp-open-btn');
+
+      if (isAndroid) {
+        // intent:// forces Android to open in Chrome (or system browser chooser)
+        // S.browser_fallback_url is used if no browser handles the intent
+        var host = pageUrl.replace(/^https?:\/\//, '');
+        var intentUrl = 'intent://' + host
+          + '#Intent;scheme=https;package=com.android.chrome'
+          + ';S.browser_fallback_url=' + encodeURIComponent(pageUrl)
+          + ';end';
+        if (btn) btn.href = intentUrl;
+
+        // Try auto-redirect — some WebViews allow it, others block it
+        // Use a small delay so the page has time to render the banner first
+        setTimeout(function() {
+          try { location.href = intentUrl; } catch(_) {}
+        }, 800);
+      } else if (isIOS) {
+        // iOS: no reliable forced redirect — just show the link
+        if (btn) btn.href = pageUrl;
+        if (btn) btn.textContent = '↗ COPY LINK';
+        if (btn) btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(pageUrl).then(function() {
+              btn.textContent = '✓ COPIED';
+            });
+          } else {
+            // Fallback: select text from a temp input
+            var inp = document.createElement('input');
+            inp.value = pageUrl;
+            document.body.appendChild(inp);
+            inp.select();
+            document.execCommand('copy');
+            document.body.removeChild(inp);
+            btn.textContent = '✓ COPIED — paste in Safari';
+          }
+        });
+      } else {
+        if (btn) btn.href = pageUrl;
       }
+
+      var b = document.getElementById('inapp-banner');
+      if (b) b.style.display = 'flex';
     })();
   </script>
 
