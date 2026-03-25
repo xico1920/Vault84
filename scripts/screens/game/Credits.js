@@ -10,6 +10,7 @@ export function createCreditsScreen() {
             links: [
                 { label: 'LINKEDIN',  icon: 'in', url: 'https://www.linkedin.com/in/francisco-silva-59747619b/' },
                 { label: 'INSTAGRAM', icon: 'ig', url: 'https://www.instagram.com/xico_silva19/' },
+                { label: 'PORTFOLIO', icon: 'wb', url: 'https://xico1920.github.io/Portfolio/' },
                 { label: 'LINKTREE',  icon: 'lt', url: 'https://linktr.ee/Xico_' },
             ]
         },
@@ -30,6 +31,7 @@ export function createCreditsScreen() {
         in: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H4zm2 5a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-1 2h2v8H5V10zm4 0h1.9v1.1A3.2 3.2 0 0 1 13.8 10C16 10 17 11.5 17 14v4h-2v-3.5c0-1.3-.5-2-1.5-2s-1.5.7-1.5 2V18H9z"/></svg>`,
         ig: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>`,
         lt: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 7 L12 2 L7 7"/><path d="M17 13 L12 8 L7 13"/><line x1="12" y1="8" x2="12" y2="22"/></svg>`,
+        wb: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c-2.5 2.5-4 5.7-4 9s1.5 6.5 4 9"/><path d="M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9"/><line x1="3" y1="12" x2="21" y2="12"/></svg>`,
     };
 
     return {

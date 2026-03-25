@@ -56,55 +56,62 @@
 </head>
 <body class="noisy">
 
-  <!-- ── In-app browser: small floating button (non-blocking) ───────── -->
+  <!-- ── In-app browser detection + open-in-browser helper ──────────── -->
+  <script>
+    (function(){
+      var ua      = navigator.userAgent || '';
+      var isAndroid = /Android/i.test(ua);
+      var isIOS     = /iPhone|iPad|iPod/i.test(ua);
+      window._isInApp = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
+                     || (isAndroid && /wv/.test(ua));
+
+      // Shared helper: share sheet (Android) or clipboard copy (iOS / fallback)
+      window._openInBrowser = function(labelEl) {
+        var url = location.href;
+        var setLabel = function(t){ if(labelEl) labelEl.textContent = t; };
+
+        // Web Share API — shows Android/iOS native share sheet
+        if (navigator.share) {
+          navigator.share({ title: 'Vault 84', url: url }).catch(function(){});
+          return;
+        }
+        // Clipboard fallback
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function(){
+            setLabel('✓ LINK COPIED' + (isIOS ? ' — paste in Safari' : ' — paste in Chrome'));
+          }).catch(function(){ setLabel('Copy: ' + url); });
+          return;
+        }
+        // execCommand fallback (very old WebViews)
+        try {
+          var inp = document.createElement('input');
+          inp.value = url;
+          inp.style.position = 'fixed'; inp.style.opacity = '0';
+          document.body.appendChild(inp); inp.focus(); inp.select();
+          document.execCommand('copy');
+          document.body.removeChild(inp);
+          setLabel('✓ LINK COPIED — paste in Chrome');
+        } catch(_) {
+          setLabel('Copy this URL: ' + url);
+        }
+      };
+    })();
+  </script>
+
+  <!-- ── Floating "open in browser" button (only shown in WebViews) ── -->
   <div id="inapp-btn" style="display:none;position:fixed;bottom:14px;right:14px;z-index:99999;">
-    <a id="inapp-open-btn" href="#"
-       style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#020f07;border:1px solid #ff8800;color:#ff8800;font-family:monospace;font-size:0.68rem;letter-spacing:1px;text-decoration:none;border-radius:2px;box-shadow:0 0 8px rgba(255,136,0,0.3);">
-      <span>⚠ OPEN IN BROWSER</span>
-    </a>
+    <button id="inapp-open-btn"
+       style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#020f07;border:1px solid #ff8800;color:#ff8800;font-family:monospace;font-size:0.68rem;letter-spacing:1px;cursor:pointer;border-radius:2px;box-shadow:0 0 8px rgba(255,136,0,0.3);">
+      <span id="inapp-open-lbl">⚠ OPEN IN BROWSER</span>
+    </button>
   </div>
   <script>
     (function(){
-      var ua       = navigator.userAgent || '';
-      var isAndroid= /Android/i.test(ua);
-      var isIOS    = /iPhone|iPad|iPod/i.test(ua);
-      window._isInApp = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
-                     || (isAndroid && /wv/.test(ua));
       if (!window._isInApp) return;
-
-      var pageUrl  = location.href;
-      var btn      = document.getElementById('inapp-open-btn');
-      var wrap     = document.getElementById('inapp-btn');
-
-      if (isAndroid) {
-        var host       = pageUrl.replace(/^https?:\/\//,'');
-        var intentUrl  = 'intent://'+host+'#Intent;scheme=https;package=com.android.chrome'
-                       + ';S.browser_fallback_url='+encodeURIComponent(pageUrl)+';end';
-        if (btn) btn.href = intentUrl;
-      } else if (isIOS) {
-        // iOS: copy link to clipboard
-        if (btn) {
-          btn.href = '#';
-          btn.addEventListener('click', function(e){
-            e.preventDefault();
-            var copy = function(text){
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).then(function(){ btn.querySelector('span').textContent='✓ LINK COPIED'; });
-              } else {
-                var inp = document.createElement('input');
-                inp.value = text; document.body.appendChild(inp); inp.select();
-                try { document.execCommand('copy'); } catch(_){}
-                document.body.removeChild(inp);
-                btn.querySelector('span').textContent = '✓ LINK COPIED — paste in Safari';
-              }
-            };
-            copy(pageUrl);
-          });
-        }
-      } else {
-        if (btn) btn.href = pageUrl;
-      }
-
+      var wrap = document.getElementById('inapp-btn');
+      var btn  = document.getElementById('inapp-open-btn');
+      var lbl  = document.getElementById('inapp-open-lbl');
+      if (btn) btn.addEventListener('click', function(){ window._openInBrowser(lbl); });
       if (wrap) wrap.style.display = 'block';
     })();
   </script>
@@ -113,21 +120,7 @@
   <script>
     window.addEventListener('error', function(e) {
       if (document.getElementById('vault84-crash')) return;
-      if (!window._isInApp) return; // only intercept in restricted contexts
-
-      var ua        = navigator.userAgent || '';
-      var isAndroid = /Android/i.test(ua);
-      var pageUrl   = location.href;
-      var openHref  = pageUrl;
-      var openLabel = '↗ OPEN IN CHROME';
-
-      if (isAndroid) {
-        var host = pageUrl.replace(/^https?:\/\//,'');
-        openHref = 'intent://'+host+'#Intent;scheme=https;package=com.android.chrome'
-                 + ';S.browser_fallback_url='+encodeURIComponent(pageUrl)+';end';
-      } else {
-        openLabel = '↗ COPY LINK';
-      }
+      if (!window._isInApp) return;
 
       var el = document.createElement('div');
       el.id  = 'vault84-crash';
@@ -135,20 +128,13 @@
       el.innerHTML =
         '<div style="color:#14fdce;font-size:1rem;letter-spacing:4px;">!! SYSTEM ERROR</div>'
         +'<div style="color:#ff8800;font-size:0.8rem;">VAULT 84 could not start in this browser.</div>'
-        +'<div style="color:#3d9970;font-size:0.7rem;line-height:1.7;max-width:280px;">The LinkedIn in-app browser restricts some APIs required by the game.<br>Open in <strong style="color:#14fdce;">Chrome</strong> to play.</div>'
-        +'<a id="crash-open" href="'+openHref+'" style="margin-top:0.4rem;padding:8px 22px;border:1px solid #14fdce;color:#14fdce;font-size:0.78rem;letter-spacing:2px;text-decoration:none;">'+openLabel+'</a>';
+        +'<div style="color:#3d9970;font-size:0.7rem;line-height:1.7;max-width:280px;">Open in <strong style="color:#14fdce;">Chrome</strong> or <strong style="color:#14fdce;">Safari</strong> to play.</div>'
+        +'<button id="crash-open" style="margin-top:0.4rem;padding:8px 22px;border:1px solid #14fdce;background:transparent;color:#14fdce;font-family:monospace;font-size:0.78rem;letter-spacing:2px;cursor:pointer;"><span id="crash-lbl">↗ OPEN IN BROWSER</span></button>';
       document.body.appendChild(el);
-
-      // iOS copy-link behaviour
-      if (!/Android/i.test(ua)) {
-        var a = document.getElementById('crash-open');
-        if (a) a.addEventListener('click', function(ev){
-          ev.preventDefault();
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(pageUrl).then(function(){ a.textContent='✓ COPIED — paste in Safari'; });
-          }
-        });
-      }
+      var btn = document.getElementById('crash-open');
+      if (btn) btn.addEventListener('click', function(){
+        window._openInBrowser(document.getElementById('crash-lbl'));
+      });
     });
     window.addEventListener('unhandledrejection', function(e) {
       window.dispatchEvent(new ErrorEvent('error', { message: e.reason }));
