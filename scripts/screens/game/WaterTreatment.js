@@ -11,7 +11,7 @@ export function createWaterTreatmentScreen() {
         const s=$('wt-st');   if(s){s.textContent=w.pumpOnline?'OPERATIONAL':'OFFLINE';s.style.color=w.pumpOnline?'#14fdce':'#ff2222';}
         const f=$('wt-fl');   if(f)f.textContent=w.pumpOnline?`${w.flowRate*w.upgradeLevel} L/min`:'0 L/min';
         const c=$('wt-cl');   if(c){c.textContent=w.pumpOnline?'ACTIVE':'INACTIVE';c.style.color=w.pumpOnline?'#14fdce':'#ff2222';}
-        const t=$('wt-tmp');  if(t){t.textContent=`${r.temperature}C`;t.style.color=tc(r.temperature);}
+        const tmp=$('wt-tmp'); if(tmp){tmp.textContent=`${r.temperature}C`;tmp.style.color=tc(r.temperature);}
         const b=$('wt-tbar'); if(b){b.style.width=`${Math.min(100,(r.temperature/1800)*100)}%`;b.style.background=tc(r.temperature);}
         const tog=$('wt-tog'); if(tog){tog.textContent=w.pumpOnline?t('wt_shutdown'):t('wt_start');tog.className=`btn ${w.pumpOnline?'btn-danger':''}`;}
         const wn=$('wt-warn'); if(wn)wn.style.display=(!w.pumpOnline&&r.temperature>800)?'block':'none';

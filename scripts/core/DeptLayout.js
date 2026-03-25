@@ -115,6 +115,7 @@ export function mountDeptModel(canvasId, dept, opts = {}) {
             cancelAnimationFrame(animId);
             ro.disconnect();
             document.removeEventListener('visibilitychange', onVisChange);
+            renderer.forceContextLoss();
             renderer.dispose();
         },
         model

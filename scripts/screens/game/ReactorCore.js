@@ -15,7 +15,7 @@ export function createReactorCoreScreen() {
         const r = GameState.reactor, $ = id => document.getElementById(id);
         const s=$('rc-status'); if(s){s.textContent=r.status;s.style.color=sColor(r.status);}
         const p=$('rc-power');  if(p){p.textContent=`${(r.powerGW*r.efficiency).toFixed(2)} GW`;p.style.color=r.efficiency>0.6?'#14fdce':'#ff8800';}
-        const t=$('rc-temp');   if(t){t.textContent=`${r.temperature}C`;t.style.color=tColor(r.temperature);}
+        const tmp=$('rc-temp'); if(tmp){tmp.textContent=`${r.temperature}C`;tmp.style.color=tColor(r.temperature);}
         const e=$('rc-eff');    if(e){e.textContent=effBar(r.efficiency);e.style.color=r.efficiency>0.7?'#14fdce':r.efficiency>0.3?'#ff8800':'#ff2222';}
         const b=$('rc-tbar');   if(b){b.style.width=`${Math.min(100,(r.temperature/1800)*100)}%`;b.style.background=tColor(r.temperature);}
         const tog=$('rc-toggle'); if(tog){tog.textContent=r.online?t('rc_shutdown'):t('rc_start_reactor');tog.className=`btn ${r.online?'btn-danger':''}`;}

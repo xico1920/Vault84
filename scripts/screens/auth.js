@@ -88,7 +88,7 @@ export function createAuthScreen(manager, USERNAME_KEY) {
                 }
 
                 // Qualquer outra tecla visível (ex: letras, números) → som aleatório entre keypress3-7
-                const isPrintable = e.key.length === 1;
+                const isPrintable = (e.key || '').length === 1;
                 if (isPrintable) {
                     playRandomNormalKeypressSound();
                 }
