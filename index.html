@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- ── Storage polyfill (must be first — patches localStorage/sessionStorage if blocked by WebView) -->
+  <script>
+    (function(){
+      function memStore(){
+        var s={};
+        return {
+          getItem:    function(k){return s.hasOwnProperty(k)?s[k]:null;},
+          setItem:    function(k,v){s[k]=String(v);},
+          removeItem: function(k){delete s[k];},
+          clear:      function(){s={};},
+          key:        function(i){return Object.keys(s)[i]||null;},
+          get length(){return Object.keys(s).length;}
+        };
+      }
+      ['localStorage','sessionStorage'].forEach(function(name){
+        try{ window[name].setItem('__v84__','1'); window[name].removeItem('__v84__'); }
+        catch(e){
+          try{ Object.defineProperty(window,name,{value:memStore(),configurable:true,writable:false}); }
+          catch(e2){}
+        }
+      });
+    })();
+  </script>
+
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3JHW31LJC1"></script>
   <script>
@@ -32,71 +56,56 @@
 </head>
 <body class="noisy">
 
-  <!-- ── In-app browser warning ──────────────────────────────────────── -->
-  <div id="inapp-banner" style="display:none;position:fixed;inset:0;z-index:99999;background:#020f07;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;font-family:monospace;text-align:center;">
-    <div style="color:#ff8800;font-size:1.4rem;">⚠</div>
-    <div style="color:#14fdce;font-size:0.95rem;letter-spacing:3px;">RESTRICTED BROWSER DETECTED</div>
-    <div style="color:#3d9970;font-size:0.72rem;letter-spacing:1px;max-width:300px;line-height:1.7;">
-      VAULT 84 cannot run inside the LinkedIn in-app browser.<br>
-      Open it in <strong style="color:#14fdce;">Chrome</strong> or <strong style="color:#14fdce;">Safari</strong> for full support.
-    </div>
-    <a id="inapp-open-btn" href="#" style="display:inline-block;margin-top:0.5rem;padding:8px 22px;border:1px solid #14fdce;color:#14fdce;font-family:monospace;font-size:0.8rem;letter-spacing:2px;text-decoration:none;">↗ OPEN IN BROWSER</a>
-    <button onclick="document.getElementById('inapp-banner').style.display='none'" style="background:transparent;border:none;color:#1a4a2a;font-family:monospace;font-size:0.65rem;letter-spacing:1px;cursor:pointer;margin-top:0.25rem;">ignore &amp; try anyway</button>
+  <!-- ── In-app browser: small floating button (non-blocking) ───────── -->
+  <div id="inapp-btn" style="display:none;position:fixed;bottom:14px;right:14px;z-index:99999;">
+    <a id="inapp-open-btn" href="#"
+       style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:#020f07;border:1px solid #ff8800;color:#ff8800;font-family:monospace;font-size:0.68rem;letter-spacing:1px;text-decoration:none;border-radius:2px;box-shadow:0 0 8px rgba(255,136,0,0.3);">
+      <span>⚠ OPEN IN BROWSER</span>
+    </a>
   </div>
   <script>
     (function(){
-      var ua = navigator.userAgent || '';
-      var isAndroid = /Android/i.test(ua);
-      var isIOS     = /iPhone|iPad|iPod/i.test(ua);
-      var inApp     = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
-                   || (isAndroid && /wv/.test(ua));
-      if (!inApp) return;
+      var ua       = navigator.userAgent || '';
+      var isAndroid= /Android/i.test(ua);
+      var isIOS    = /iPhone|iPad|iPod/i.test(ua);
+      window._isInApp = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
+                     || (isAndroid && /wv/.test(ua));
+      if (!window._isInApp) return;
 
-      var pageUrl = location.href;
-      var btn = document.getElementById('inapp-open-btn');
+      var pageUrl  = location.href;
+      var btn      = document.getElementById('inapp-open-btn');
+      var wrap     = document.getElementById('inapp-btn');
 
       if (isAndroid) {
-        // intent:// forces Android to open in Chrome (or system browser chooser)
-        // S.browser_fallback_url is used if no browser handles the intent
-        var host = pageUrl.replace(/^https?:\/\//, '');
-        var intentUrl = 'intent://' + host
-          + '#Intent;scheme=https;package=com.android.chrome'
-          + ';S.browser_fallback_url=' + encodeURIComponent(pageUrl)
-          + ';end';
+        var host       = pageUrl.replace(/^https?:\/\//,'');
+        var intentUrl  = 'intent://'+host+'#Intent;scheme=https;package=com.android.chrome'
+                       + ';S.browser_fallback_url='+encodeURIComponent(pageUrl)+';end';
         if (btn) btn.href = intentUrl;
-
-        // Try auto-redirect — some WebViews allow it, others block it
-        // Use a small delay so the page has time to render the banner first
-        setTimeout(function() {
-          try { location.href = intentUrl; } catch(_) {}
-        }, 800);
       } else if (isIOS) {
-        // iOS: no reliable forced redirect — just show the link
-        if (btn) btn.href = pageUrl;
-        if (btn) btn.textContent = '↗ COPY LINK';
-        if (btn) btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(pageUrl).then(function() {
-              btn.textContent = '✓ COPIED';
-            });
-          } else {
-            // Fallback: select text from a temp input
-            var inp = document.createElement('input');
-            inp.value = pageUrl;
-            document.body.appendChild(inp);
-            inp.select();
-            document.execCommand('copy');
-            document.body.removeChild(inp);
-            btn.textContent = '✓ COPIED — paste in Safari';
-          }
-        });
+        // iOS: copy link to clipboard
+        if (btn) {
+          btn.href = '#';
+          btn.addEventListener('click', function(e){
+            e.preventDefault();
+            var copy = function(text){
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(function(){ btn.querySelector('span').textContent='✓ LINK COPIED'; });
+              } else {
+                var inp = document.createElement('input');
+                inp.value = text; document.body.appendChild(inp); inp.select();
+                try { document.execCommand('copy'); } catch(_){}
+                document.body.removeChild(inp);
+                btn.querySelector('span').textContent = '✓ LINK COPIED — paste in Safari';
+              }
+            };
+            copy(pageUrl);
+          });
+        }
       } else {
         if (btn) btn.href = pageUrl;
       }
 
-      var b = document.getElementById('inapp-banner');
-      if (b) b.style.display = 'flex';
+      if (wrap) wrap.style.display = 'block';
     })();
   </script>
 
@@ -104,14 +113,42 @@
   <script>
     window.addEventListener('error', function(e) {
       if (document.getElementById('vault84-crash')) return;
+      if (!window._isInApp) return; // only intercept in restricted contexts
+
+      var ua        = navigator.userAgent || '';
+      var isAndroid = /Android/i.test(ua);
+      var pageUrl   = location.href;
+      var openHref  = pageUrl;
+      var openLabel = '↗ OPEN IN CHROME';
+
+      if (isAndroid) {
+        var host = pageUrl.replace(/^https?:\/\//,'');
+        openHref = 'intent://'+host+'#Intent;scheme=https;package=com.android.chrome'
+                 + ';S.browser_fallback_url='+encodeURIComponent(pageUrl)+';end';
+      } else {
+        openLabel = '↗ COPY LINK';
+      }
+
       var el = document.createElement('div');
-      el.id = 'vault84-crash';
-      el.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020f07;z-index:99998;color:#ff2222;font-family:monospace;font-size:0.85rem;letter-spacing:1px;padding:2rem;text-align:center;gap:1rem;';
-      el.innerHTML = '<div style="color:#14fdce;font-size:1rem;letter-spacing:3px;">!! SYSTEM ERROR</div>'
-        + '<div style="color:#ff8800;">VAULT 84 could not initialise in this browser.</div>'
-        + '<div style="color:#3d9970;font-size:0.72rem;">Open in <strong style="color:#14fdce;">Chrome</strong> or <strong style="color:#14fdce;">Safari</strong> for full support.</div>'
-        + '<a href="' + location.href + '" style="margin-top:0.5rem;color:#14fdce;font-size:0.72rem;border-bottom:1px solid #14fdce;">↗ OPEN IN BROWSER</a>';
+      el.id  = 'vault84-crash';
+      el.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020f07;z-index:99998;font-family:monospace;letter-spacing:1px;padding:2rem;text-align:center;gap:1.1rem;';
+      el.innerHTML =
+        '<div style="color:#14fdce;font-size:1rem;letter-spacing:4px;">!! SYSTEM ERROR</div>'
+        +'<div style="color:#ff8800;font-size:0.8rem;">VAULT 84 could not start in this browser.</div>'
+        +'<div style="color:#3d9970;font-size:0.7rem;line-height:1.7;max-width:280px;">The LinkedIn in-app browser restricts some APIs required by the game.<br>Open in <strong style="color:#14fdce;">Chrome</strong> to play.</div>'
+        +'<a id="crash-open" href="'+openHref+'" style="margin-top:0.4rem;padding:8px 22px;border:1px solid #14fdce;color:#14fdce;font-size:0.78rem;letter-spacing:2px;text-decoration:none;">'+openLabel+'</a>';
       document.body.appendChild(el);
+
+      // iOS copy-link behaviour
+      if (!/Android/i.test(ua)) {
+        var a = document.getElementById('crash-open');
+        if (a) a.addEventListener('click', function(ev){
+          ev.preventDefault();
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(pageUrl).then(function(){ a.textContent='✓ COPIED — paste in Safari'; });
+          }
+        });
+      }
     });
     window.addEventListener('unhandledrejection', function(e) {
       window.dispatchEvent(new ErrorEvent('error', { message: e.reason }));
@@ -172,7 +209,18 @@
 
   </div>
 
+  <!-- Three.js with CDN fallback chain -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    if (!window.THREE) {
+      document.write('<scr'+'ipt src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/scr'+'ipt>');
+    }
+  </script>
+  <script>
+    if (!window.THREE) {
+      document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/scr'+'ipt>');
+    }
+  </script>
 
   <script type="module" src="scripts/main.js"></script>
 
