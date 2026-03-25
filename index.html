@@ -32,6 +32,42 @@
 </head>
 <body class="noisy">
 
+  <!-- ── In-app browser warning ──────────────────────────────────────── -->
+  <div id="inapp-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#020f07;border-bottom:1px solid #14fdce;padding:10px 14px;font-family:monospace;font-size:0.78rem;color:#14fdce;letter-spacing:1px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="color:#ff8800;">⚠</span>
+    <span style="flex:1;">VAULT 84 requires a full browser. <strong>Open in Chrome / Safari</strong> for the best experience.</span>
+    <button onclick="this.parentElement.style.display='none'" style="background:transparent;border:1px solid #3d9970;color:#3d9970;padding:2px 8px;cursor:pointer;font-family:monospace;font-size:0.72rem;letter-spacing:1px;">DISMISS</button>
+  </div>
+  <script>
+    (function(){
+      var ua = navigator.userAgent || '';
+      var inApp = /LinkedInApp|FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(ua)
+               || (/Android/.test(ua) && /wv/.test(ua));
+      if (inApp) {
+        var b = document.getElementById('inapp-banner');
+        if (b) b.style.display = 'flex';
+      }
+    })();
+  </script>
+
+  <!-- ── Global error boundary ───────────────────────────────────────── -->
+  <script>
+    window.addEventListener('error', function(e) {
+      if (document.getElementById('vault84-crash')) return;
+      var el = document.createElement('div');
+      el.id = 'vault84-crash';
+      el.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020f07;z-index:99998;color:#ff2222;font-family:monospace;font-size:0.85rem;letter-spacing:1px;padding:2rem;text-align:center;gap:1rem;';
+      el.innerHTML = '<div style="color:#14fdce;font-size:1rem;letter-spacing:3px;">!! SYSTEM ERROR</div>'
+        + '<div style="color:#ff8800;">VAULT 84 could not initialise in this browser.</div>'
+        + '<div style="color:#3d9970;font-size:0.72rem;">Open in <strong style="color:#14fdce;">Chrome</strong> or <strong style="color:#14fdce;">Safari</strong> for full support.</div>'
+        + '<a href="' + location.href + '" style="margin-top:0.5rem;color:#14fdce;font-size:0.72rem;border-bottom:1px solid #14fdce;">↗ OPEN IN BROWSER</a>';
+      document.body.appendChild(el);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      window.dispatchEvent(new ErrorEvent('error', { message: e.reason }));
+    });
+  </script>
+
   <div class="monitor-shell">
 
     <div class="frame" id="crt-frame">
@@ -308,7 +344,8 @@
       }
 
       // Init — always default to EN for first visit
-      var savedLang = localStorage.getItem('vault84_lang') || 'EN';
+      var savedLang = 'EN';
+      try { savedLang = localStorage.getItem('vault84_lang') || 'EN'; } catch(_) {}
       applyLangUI(savedLang);
 
       // ── Per-element glitch transition ─────────────────────────────
@@ -381,10 +418,10 @@
       window._applyLangUI    = applyLangUI;
       window._playLangGlitch = playElementGlitch;
 
-      langInput.addEventListener('change', function() {
+      if (langInput) langInput.addEventListener('change', function() {
         var newLang = langInput.checked ? 'EN' : 'PT';
         applyLangUI(newLang);
-        localStorage.setItem('vault84_lang', newLang);
+        try { localStorage.setItem('vault84_lang', newLang); } catch(_) {}
         if (window._setLang) window._setLang(newLang);
         playElementGlitch();
       });

@@ -65,9 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const savedUsername = localStorage.getItem(USERNAME_KEY);
+    let savedUsername = null;
+    let outdated = false;
+    try { savedUsername = localStorage.getItem(USERNAME_KEY); } catch(_) {}
+    try { outdated = isSaveOutdated(); } catch(_) {}
 
-    if (isSaveOutdated()) {
+    if (outdated) {
         screenManager.navigateTo('deprecated');
     } else {
         screenManager.navigateTo('start', savedUsername);
