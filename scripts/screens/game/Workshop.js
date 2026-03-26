@@ -93,8 +93,12 @@ export function createWorkshopScreen() {
         const refund = Math.floor(cost(key) * 0.5);
 
         // Simulate power after downgrade to check impact
-        const powerLoss = key === 'reactor' ? 2.4 : 0;
-        const drawSaved = key === 'mining' ? 0.4 : key === 'refinery' ? 0.3 : key === 'water' ? 0.3 : 0;
+        // Reactor loss must account for current efficiency (not raw 2.4 GW)
+        const powerLoss = key === 'reactor' ? 2.4 * GameState.reactor.efficiency : 0;
+        const drawSaved = key === 'mining'   ? (GameState.mining.online   ? 0.4 : 0)
+                        : key === 'refinery' ? (GameState.refinery.online ? 0.3 : 0)
+                        : key === 'water'    ? (GameState.water.pumpOnline? 0.3 : 0)
+                        : 0;
         const newHeadroom = GameState.powerHeadroom - powerLoss + drawSaved;
 
         if (newHeadroom < 0) {

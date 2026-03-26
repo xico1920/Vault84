@@ -141,10 +141,10 @@ export function breachMinigame(canvas, threat, onProgress, onComplete) {
     const ctx = canvas.getContext('2d');
     let raf, destroyed = false;
 
-    const ROUNDS   = 3 + threat.severity;
-    const CHARS    = 'ABCDEF0123456789';
-    const SEQ_LEN  = 3 + threat.severity;
-    const SHOW_MS  = Math.max(3000, 6000 - threat.severity * 500); // much more time
+    const ROUNDS  = 1 + Math.min(threat.severity, 3);          // 2–4 rounds
+    const CHARS   = 'ABCDEF0123456789';
+    const SEQ_LEN = 3 + Math.floor(threat.severity * 0.5);     // 3–4 chars
+    const SHOW_MS = Math.max(1200, 2000 - threat.severity * 150); // 1.2–2s
 
     let round = 0, solved = 0;
     let sequence = '', typed = '', phase = 'show'; // show | type | flash
@@ -157,6 +157,51 @@ export function breachMinigame(canvas, threat, onProgress, onComplete) {
         phaseTimer = Date.now() + SHOW_MS;
     }
     newRound();
+
+    // ── On-screen keyboard (for mobile) ──────────────────────────
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    let keyboardEl = null;
+    function showKeyboard() {
+        if (!isMobile || keyboardEl) return;
+        const parent = canvas.parentElement;
+        keyboardEl = document.createElement('div');
+        keyboardEl.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:3px;padding:4px 2px;background:#020f07;border-top:1px solid #1a4a2a;';
+        CHARS.split('').forEach(ch => {
+            const btn = document.createElement('button');
+            btn.textContent = ch;
+            btn.style.cssText = 'font-family:VT323,monospace;font-size:1rem;width:28px;height:28px;background:#0a1f0f;border:1px solid #1a4a2a;color:#14fdce;cursor:pointer;padding:0;';
+            btn.addEventListener('click', () => injectChar(ch));
+            keyboardEl.appendChild(btn);
+        });
+        // Backspace
+        const bk = document.createElement('button');
+        bk.textContent = '⌫';
+        bk.style.cssText = 'font-family:VT323,monospace;font-size:1rem;width:42px;height:28px;background:#0a1f0f;border:1px solid #1a4a2a;color:#ff8800;cursor:pointer;padding:0;';
+        bk.addEventListener('click', () => { if(phase==='type') typed = typed.slice(0,-1); });
+        keyboardEl.appendChild(bk);
+        parent.appendChild(keyboardEl);
+    }
+    function hideKeyboard() {
+        if (keyboardEl) { keyboardEl.remove(); keyboardEl = null; }
+    }
+
+    function injectChar(ch) {
+        if (destroyed || phase !== 'type') return;
+        typed += ch;
+        if (typed.length === SEQ_LEN) submitTyped();
+    }
+
+    function submitTyped() {
+        if (typed === sequence) {
+            solved++;
+            onProgress(solved / ROUNDS);
+            flashCol = '#14fdce';
+            if (solved >= ROUNDS) { setTimeout(onComplete, 400); }
+        } else {
+            flashCol = '#ff2222';
+        }
+        phase = 'flash'; flashTimer = 25; round++;
+    }
 
     function draw() {
         if (destroyed) return;
@@ -179,82 +224,82 @@ export function breachMinigame(canvas, threat, onProgress, onComplete) {
         if (phase === 'show') {
             const remaining = Math.max(0, phaseTimer - now);
             const frac = remaining / SHOW_MS;
-            // Timer bar
-            ctx.fillStyle = `rgba(20,253,206,${0.3 + frac * 0.4})`;
-            ctx.fillRect(0, H - 6, W * frac, 6);
+            const urgent = frac < 0.35;
 
-            ctx.font = 'bold 42px VT323, monospace';
+            // Timer bar — turns red when nearly gone
+            ctx.fillStyle = urgent ? `rgba(255,34,34,${0.5 + frac})` : `rgba(20,253,206,${0.3 + frac * 0.4})`;
+            ctx.fillRect(0, H - 5, W * frac, 5);
+
+            ctx.font = 'bold 48px VT323, monospace';
             ctx.textAlign = 'center';
-            ctx.fillStyle = `rgba(20,253,206,${0.6 + frac * 0.4})`;
-            ctx.shadowColor = '#14fdce';
-            ctx.shadowBlur  = 12 * frac;
-            ctx.fillText(sequence, W / 2, H / 2 + 14);
+            ctx.fillStyle = urgent ? `rgba(255,136,0,${0.7 + frac * 0.3})` : `rgba(20,253,206,${0.7 + frac * 0.3})`;
+            ctx.shadowColor = urgent ? '#ff8800' : '#14fdce';
+            ctx.shadowBlur  = 16;
+            ctx.fillText(sequence, W / 2, H / 2 + 16);
             ctx.shadowBlur = 0;
 
-            ctx.font = '11px VT323, monospace';
-            ctx.fillStyle = 'rgba(20,253,206,0.4)';
-            ctx.fillText('MEMORIZE THE CODE', W / 2, H / 2 - 30);
+            ctx.font = '12px VT323, monospace';
+            ctx.fillStyle = 'rgba(20,253,206,0.5)';
+            ctx.fillText('MEMORIZE THE CODE', W / 2, H / 2 - 32);
 
-            if (remaining <= 0) { phase = 'type'; }
+            if (remaining <= 0) { phase = 'type'; if (isMobile) showKeyboard(); }
 
         } else if (phase === 'type') {
-            ctx.font = '11px VT323, monospace';
+            ctx.font = '12px VT323, monospace';
             ctx.textAlign = 'center';
-            ctx.fillStyle = 'rgba(255,136,0,0.7)';
-            ctx.fillText('ENTER THE CODE', W / 2, H / 2 - 40);
+            ctx.fillStyle = 'rgba(255,136,0,0.8)';
+            ctx.fillText('ENTER THE CODE', W / 2, H / 2 - 38);
 
-            // Show typed chars
-            ctx.font = 'bold 42px VT323, monospace';
+            // Typed chars
+            ctx.font = 'bold 48px VT323, monospace';
             const display = typed.padEnd(SEQ_LEN, '_');
+            const charW = 32;
+            const startX = W / 2 - (SEQ_LEN * charW) / 2 + charW / 2;
             for (let i = 0; i < SEQ_LEN; i++) {
+                const filled = i < typed.length;
                 const correct = typed[i] === sequence[i];
-                const filled  = i < typed.length;
                 ctx.fillStyle = filled ? (correct ? '#14fdce' : '#ff2222') : 'rgba(20,253,206,0.2)';
-                const cx = W / 2 - (SEQ_LEN * 26) / 2 + i * 26 + 13;
-                ctx.fillText(display[i], cx, H / 2 + 14);
+                ctx.fillText(display[i], startX + i * charW, H / 2 + 16);
             }
 
-            // Keyboard hint
-            ctx.font = '10px VT323, monospace';
-            ctx.fillStyle = 'rgba(20,253,206,0.25)';
-            ctx.fillText('USE KEYBOARD', W / 2, H - 12);
+            if (!isMobile) {
+                ctx.font = '10px VT323, monospace';
+                ctx.fillStyle = 'rgba(20,253,206,0.25)';
+                ctx.fillText('USE KEYBOARD', W / 2, H - 10);
+            }
 
         } else if (phase === 'flash') {
             flashTimer--;
-            ctx.font = 'bold 28px VT323, monospace';
+            ctx.font = 'bold 26px VT323, monospace';
             ctx.textAlign = 'center';
             ctx.fillStyle = flashCol;
-            ctx.fillText(flashCol === '#14fdce' ? '✓ CODE ACCEPTED' : '✗ CODE REJECTED', W / 2, H / 2 + 10);
-            if (flashTimer <= 0) { newRound(); }
+            ctx.shadowColor = flashCol;
+            ctx.shadowBlur = 10;
+            ctx.fillText(flashCol === '#14fdce' ? '✓ CODE ACCEPTED' : '✗ REJECTED — RETRY', W / 2, H / 2 + 10);
+            ctx.shadowBlur = 0;
+            if (flashTimer <= 0) {
+                hideKeyboard();
+                newRound();
+                if (isMobile) setTimeout(showKeyboard, SHOW_MS + 50);
+            }
         }
 
         // Round indicator
         ctx.font = '10px VT323, monospace';
         ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(20,253,206,0.3)';
-        ctx.fillText(`SEQUENCE ${round + 1}/${ROUNDS}`, 8, 16);
+        ctx.fillStyle = 'rgba(20,253,206,0.35)';
+        ctx.fillText(`SEQ ${round + 1}/${ROUNDS}`, 8, 16);
 
-        ctx.textAlign = 'left';
         raf = requestAnimationFrame(draw);
     }
 
     // Keyboard handler
     const onKey = (e) => {
         if (destroyed || phase !== 'type') return;
-        const k = e.key.toUpperCase();
+        const k = (e.key || '').toUpperCase();
         if (k.length === 1 && CHARS.includes(k)) {
             typed += k;
-            if (typed.length === SEQ_LEN) {
-                if (typed === sequence) {
-                    solved++;
-                    onProgress(solved / ROUNDS);
-                    flashCol = '#14fdce';
-                    if (solved >= ROUNDS) { setTimeout(onComplete, 500); }
-                } else {
-                    flashCol = '#ff2222';
-                }
-                phase = 'flash'; flashTimer = 30; round++;
-            }
+            if (typed.length === SEQ_LEN) submitTyped();
         } else if (e.key === 'Backspace') {
             typed = typed.slice(0, -1);
         }
@@ -267,6 +312,7 @@ export function breachMinigame(canvas, threat, onProgress, onComplete) {
             destroyed = true;
             cancelAnimationFrame(raf);
             window.removeEventListener('keydown', onKey);
+            hideKeyboard();
         }
     };
 }

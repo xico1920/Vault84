@@ -31,6 +31,11 @@ function tick() {
         cascadeShutdown();
     }
 
+    // 2b. POWER DEFICIT — if draw > output, force systems offline until balanced
+    if (GameState.reactor.online && GameState.powerHeadroom < -0.05) {
+        enforcePowerBudget();
+    }
+
     // 3. MINING — only if online + reactor power
     if (GameState.mining.online && GameState.reactor.efficiency > 0) {
         const mined = GameState.mining.ratePerTick;
@@ -121,6 +126,40 @@ function cascadeShutdown() {
     if (GameState.water.pumpOnline){ GameState.water.pumpOnline = false; cascaded = true; }
     if (cascaded) {
         GameState.addLog('POWER FAILURE — cascade shutdown initiated', 'crit');
+        GameState.emit('cascade', {});
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Enforces power budget: if draw > output (e.g. reactor efficiency
+// degraded due to temp/wear), take non-critical systems offline in
+// priority order until headroom >= 0.
+function enforcePowerBudget() {
+    const offline = [];
+    // Priority: mining draws most, then refinery, then water
+    const priority = [
+        { check: () => GameState.mining.online,    off: () => { GameState.mining.online    = false; } },
+        { check: () => GameState.refinery.online,  off: () => { GameState.refinery.online  = false; } },
+        { check: () => GameState.water.pumpOnline, off: () => { GameState.water.pumpOnline = false; } },
+    ];
+    const labels = ['MINING SHAFT', 'ORE REFINERY', 'WATER PLANT'];
+
+    for (let i = 0; i < priority.length; i++) {
+        if (GameState.powerHeadroom >= 0) break;
+        if (priority[i].check()) {
+            priority[i].off();
+            offline.push(labels[i]);
+        }
+    }
+
+    if (offline.length) {
+        const deficit = Math.abs(GameState.powerHeadroom + offline.reduce((s, _, i) => {
+            const draws = [GameState.mining.powerDrawGW, GameState.refinery.powerDrawGW, GameState.water.powerDrawGW];
+            return s + draws[i];
+        }, 0)).toFixed(1);
+        GameState.addLog(`POWER DEFICIT — ${offline.join(', ')} forced offline`, 'crit');
+        notifyAlert(`POWER DEFICIT — reactor efficiency too low`);
+        SE.threat?.();
         GameState.emit('cascade', {});
     }
 }
