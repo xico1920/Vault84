@@ -114,13 +114,21 @@ export function createGameScreen(manager, USERNAME_KEY) {
         });
     }
 
+    // Reverse map: screen key → keyboard hint
+    const SCREEN_KEY_HINT = Object.fromEntries(
+        Object.entries(KEY_SHORTCUTS).map(([k, v]) => [v, k.toUpperCase()])
+    );
+
     function buildNavHTML() {
-        return NAV_SCREENS.map(({ key, i18n }) => `
+        return NAV_SCREENS.map(({ key, i18n }) => {
+            const hint = SCREEN_KEY_HINT[key] || '';
+            return `
             <li style="position:relative;">
                 <a href="#" data-screen="${key}" data-i18n="${i18n}" style="display:flex;align-items:center;gap:5px;">
-                  <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${window.t(i18n)}</span></a>
+                  <span style="width:13px;height:13px;flex-shrink:0;opacity:0.75;display:inline-flex;align-items:center;">${NAV_ICONS[key]||''}</span><span class="nav-label">${window.t(i18n)}</span>${hint ? `<span class="nav-key-hint">${hint}</span>` : ''}</a>
                 <span class="nav-badge" id="nav-badge-${key}" style="display:none;"></span>
-            </li>`).join('');
+            </li>`;
+        }).join('');
     }
 
     // Inject CSS for threat flash animations (once)

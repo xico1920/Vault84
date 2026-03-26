@@ -270,13 +270,15 @@ a:hover, a:focus, a:active {
   color: var(--dim);
   border-bottom: none;
   border-right: 1px solid var(--muted);
-  transition: background 0.1s, color 0.1s;
+  transition: color 0.2s ease, text-shadow 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .nav-list li a:hover,
 .nav-list li a:focus {
-  background: var(--muted);
+  background: linear-gradient(90deg, rgba(20,253,206,0.08) 0%, transparent 100%);
   color: var(--hi);
+  text-shadow: 0 0 8px rgba(20,253,206,0.4);
+  box-shadow: inset 2px 0 0 var(--hi);
 }
 
 .nav-list li a.active {
@@ -1000,6 +1002,21 @@ input[type="range"] { accent-color: var(--hi); }
   from { opacity: 1; transform: scale(1); }
   to   { opacity: 0.3; transform: scale(0.6); }
 }
+
+/* ── Nav keyboard hints ──────────────────────────────────────── */
+.nav-key-hint {
+  font-size: 0.58rem;
+  color: var(--hi);
+  opacity: 0.9;
+  letter-spacing: 0;
+  border: 1px solid var(--muted);
+  border-radius: 2px;
+  padding: 0 4px;
+  line-height: 1.5;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) { .nav-key-hint { display: none; } }
 
 /* ═══════════════════════════════════════════════════════════════
    HUD TEMPERATURE BAR
